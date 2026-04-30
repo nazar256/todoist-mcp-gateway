@@ -72,8 +72,14 @@ describe('oauth authorize', () => {
 
   it('sets security headers', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
+    expect(response.headers.get('content-security-policy')).toContain("form-action 'self' https://gateway.test");
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
     expect(response.headers.get('x-frame-options')).toBe('DENY');
+  });
+
+  it('renders an absolute authorize form action', async () => {
+    const response = await dispatch(new Request(await authorizeUrl()), createEnv());
+    await expect(response.text()).resolves.toContain('form method="post" action="https://gateway.test/authorize"');
   });
 
   it('rejects invalid CSRF', async () => {
