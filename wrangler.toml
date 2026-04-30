@@ -1,0 +1,13 @@
+name = "todoist-mcp-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-04-30"
+
+[vars]
+OAUTH_ISSUER = "https://todoist-mcp-gateway.example.workers.dev"
+MCP_RESOURCE = "https://todoist-mcp-gateway.example.workers.dev/mcp"
+MCP_AUDIENCE = "https://todoist-mcp-gateway.example.workers.dev/mcp"
+OAUTH_REDIRECT_HTTPS_HOSTS = "chatgpt.com,*.chatgpt.com,github.com,*.github.com,claude.ai,*.claude.ai,anthropic.com,*.anthropic.com,localhost"
+ACCESS_TOKEN_TTL_SECONDS = "43200"
+AUTH_CODE_TTL_SECONDS = "120"
+REFRESH_TOKEN_TTL_SECONDS = "2592000"
+ENABLE_REFRESH_TOKENS = "true"
