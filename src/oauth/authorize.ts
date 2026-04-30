@@ -37,13 +37,14 @@ function htmlEscape(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function htmlResponse(body: string, status = 200): Response {
+function htmlResponse(body: string, status = 200, formActionOrigin?: string): Response {
+  const formAction = formActionOrigin ? `'self' ${formActionOrigin}` : "'self'";
   return new Response(body, {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      'content-security-policy': `default-src 'none'; style-src 'unsafe-inline'; form-action ${formAction}; base-uri 'none'; frame-ancestors 'none'`,
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'x-frame-options': 'DENY',
@@ -54,9 +55,11 @@ function htmlResponse(body: string, status = 200): Response {
 function renderConsentForm(params: {
   request: Awaited<ReturnType<typeof parseAuthorizationRequest>>;
   csrfToken: string;
+  formActionUrl: string;
   error?: string;
 }): Response {
-  const { request, csrfToken, error } = params;
+  const { request, csrfToken, formActionUrl, error } = params;
+  const formActionOrigin = new URL(formActionUrl).origin;
   return htmlResponse(`<!doctype html>
 <html lang="en">
   <head>
@@ -69,7 +72,7 @@ function renderConsentForm(params: {
     <p>This gateway needs your Todoist API token to call Todoist on your behalf. The token is encrypted and carried inside signed gateway tokens. It is not stored server-side.</p>
     <p>Find your token in <strong>Todoist → Settings → Integrations → Developer token</strong>.</p>
     ${error ? `<p style="color: #b00020;"><strong>${htmlEscape(error)}</strong></p>` : ''}
-    <form method="post" action="/authorize">
+    <form method="post" action="${htmlEscape(formActionUrl)}">
       <label for="todoist_api_token"><strong>Todoist API token</strong></label><br />
       <input id="todoist_api_token" name="todoist_api_token" type="password" autocomplete="off" spellcheck="false" required style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
       <input type="hidden" name="response_type" value="${htmlEscape(request.responseType)}" />
@@ -84,7 +87,7 @@ function renderConsentForm(params: {
       <button type="submit">Authorize</button>
     </form>
   </body>
-</html>`);
+</html>`, 200, formActionOrigin);
 }
 
 async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof fetch): Promise<void> {
@@ -100,6 +103,7 @@ async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof
 
 export async function handleAuthorizeGet(request: Request, config: AppConfig): Promise<Response> {
   const authorizationRequest = await parseAuthorizationRequest(request, config);
+  const formActionUrl = new URL('/authorize', request.url).toString();
   const csrfToken = await createCsrfToken(config.csrfSigningKey, {
     exp: Math.floor(Date.now() / 1000) + 600,
     client_id: authorizationRequest.clientId,
@@ -107,7 +111,7 @@ export async function handleAuthorizeGet(request: Request, config: AppConfig): P
     state: authorizationRequest.state,
   });
 
-  return renderConsentForm({ request: authorizationRequest, csrfToken });
+  return renderConsentForm({ request: authorizationRequest, csrfToken, formActionUrl });
 }
 
 export async function handleAuthorizePost(
@@ -157,6 +161,7 @@ export async function handleAuthorizePost(
       return renderConsentForm({
         request: authorizationRequest,
         csrfToken: freshCsrfToken,
+        formActionUrl: new URL('/authorize', request.url).toString(),
         error: 'The Todoist API token could not be validated. Please check it and try again.',
       });
     }

@@ -27,6 +27,7 @@ Status legend:
 - [x] Add stateless registered-client resolution for dynamic client registration compatibility.
 - [x] Implement `/authorize` GET request validation and consent form rendering.
 - [x] Implement `/authorize` POST validation, CSRF handling, and Todoist token validation.
+- [x] Make the `/authorize` consent form submit to an absolute same-origin URL and allow that origin in CSP so browsers do not block the Authorize button.
 - [ ] Verify end-to-end with a real deployed ChatGPT connector.
 
 ## Phase 2: Token encryption and JWT artifacts

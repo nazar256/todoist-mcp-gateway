@@ -17,6 +17,7 @@
 - Made `update_projects` use an explicit `project_name` selector so payload `name` can safely rename the matched project.
 - Made `update_sections` and `update_labels` use explicit name selectors (`section_name`, `label_name`) so mutation payload `name` can safely rename the matched resource.
 - Added stateless registered-client resolution for dynamic client registration by returning a non-zero `client_id_issued_at`, a `registration_access_token`, and a `registration_client_uri`, plus a read-only `GET /register/:client_id` lookup path for connector compatibility.
+- Made the `/authorize` consent form post to an absolute same-origin URL and added that origin explicitly to the CSP `form-action` directive so browsers do not block the Authorize button.
 
 ### Decisions
 - Use Cloudflare Workers and keep the gateway stateless.
