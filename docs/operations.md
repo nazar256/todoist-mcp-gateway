@@ -72,13 +72,13 @@ npm run deploy
 
 ```text
 MCP Server URL:
-https://<your-worker>/mcp
+https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp
 
 Authorization server base URL:
-https://<your-worker>
+https://todoist-mcp-gateway.xyofn8h7t.workers.dev
 
 Resource:
-https://<your-worker>/mcp
+https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp
 ```
 
 ## Smoke test checklist

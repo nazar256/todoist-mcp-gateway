@@ -77,9 +77,9 @@ main = "src/index.ts"
 compatibility_date = "2026-04-30"
 
 [vars]
-OAUTH_ISSUER = "https://todoist-mcp-gateway.<your-subdomain>.workers.dev"
-MCP_RESOURCE = "https://todoist-mcp-gateway.<your-subdomain>.workers.dev/mcp"
-MCP_AUDIENCE = "https://todoist-mcp-gateway.<your-subdomain>.workers.dev/mcp"
+OAUTH_ISSUER = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev"
+MCP_RESOURCE = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp"
+MCP_AUDIENCE = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp"
 OAUTH_REDIRECT_HTTPS_HOSTS = "chatgpt.com,*.chatgpt.com,github.com,*.github.com,claude.ai,*.claude.ai,anthropic.com,*.anthropic.com,localhost"
 ACCESS_TOKEN_TTL_SECONDS = "43200"
 AUTH_CODE_TTL_SECONDS = "120"
@@ -130,9 +130,9 @@ npm run deploy
 In ChatGPT, add a custom MCP connector with:
 
 ```text
-MCP Server URL:       https://<your-worker>/mcp
-Auth server base URL: https://<your-worker>
-Resource:             https://<your-worker>/mcp
+MCP Server URL:       https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp
+Auth server base URL: https://todoist-mcp-gateway.xyofn8h7t.workers.dev
+Resource:             https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp
 ```
 
 ## Tool coverage

@@ -43,8 +43,8 @@ describe('oauth metadata', () => {
     const config = parseConfig(createEnv());
     const metadata = getAuthorizationServerMetadata(config);
 
-    expect(metadata.authorization_endpoint).toBe('https://todoist-mcp-gateway.example.workers.dev/authorize');
-    expect(metadata.token_endpoint).toBe('https://todoist-mcp-gateway.example.workers.dev/token');
-    expect(metadata.registration_endpoint).toBe('https://todoist-mcp-gateway.example.workers.dev/register');
+    expect(metadata.authorization_endpoint).toBe('https://todoist-mcp-gateway.xyofn8h7t.workers.dev/authorize');
+    expect(metadata.token_endpoint).toBe('https://todoist-mcp-gateway.xyofn8h7t.workers.dev/token');
+    expect(metadata.registration_endpoint).toBe('https://todoist-mcp-gateway.xyofn8h7t.workers.dev/register');
   });
 });

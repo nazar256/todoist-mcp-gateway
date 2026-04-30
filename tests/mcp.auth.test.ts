@@ -56,7 +56,7 @@ describe('mcp auth', () => {
   it('401 contains WWW-Authenticate with resource_metadata', async () => {
     const response = await dispatch(new Request('https://gateway.test/mcp', { method: 'POST' }), createEnv());
     expect(response.headers.get('www-authenticate')).toContain(
-      'resource_metadata="https://todoist-mcp-gateway.example.workers.dev/.well-known/oauth-protected-resource"',
+      'resource_metadata="https://todoist-mcp-gateway.xyofn8h7t.workers.dev/.well-known/oauth-protected-resource"',
     );
   });
 

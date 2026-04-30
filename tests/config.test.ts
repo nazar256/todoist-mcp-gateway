@@ -5,7 +5,7 @@ import { createEnv } from './helpers';
 describe('config', () => {
   it('valid env parses', () => {
     const config = parseConfig(createEnv());
-    expect(config.issuer).toBe('https://todoist-mcp-gateway.example.workers.dev');
+    expect(config.issuer).toBe('https://todoist-mcp-gateway.xyofn8h7t.workers.dev');
     expect(config.enableRefreshTokens).toBe(true);
   });
 
