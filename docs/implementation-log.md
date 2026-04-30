@@ -7,6 +7,7 @@
 - Implemented config parsing, OAuth metadata, registration, authorize, token, and MCP routing.
 - Implemented Worker-compatible Todoist client and MCP tools/prompts.
 - Added unit test coverage and made `npm run check` pass.
+- Relaxed `/authorize` Todoist token validation so temporary or non-auth upstream failures do not reject otherwise valid tokens, while explicit 401/403 rejections still show the consent-form error.
 - Initialized Git on `main`.
 - Added repository documentation baseline under `docs/`.
 - Enforced OAuth scope at MCP tool invocation time while keeping `tools/list` connector-compatible.
