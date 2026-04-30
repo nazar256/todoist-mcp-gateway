@@ -51,7 +51,7 @@ The repository includes a GitHub Actions workflow at `.github/workflows/deploy.y
 The pipeline:
 
 1. **check** — runs `npm run typecheck` and `npm test`
-2. **deploy** — initializes any missing Worker secrets with random 32-byte keys, then deploys via `wrangler deploy`
+2. **deploy** — if the Worker does not exist yet, bootstraps it once with `wrangler deploy`, initializes any missing Worker secrets with random 32-byte keys, then performs the final deploy
 
 Required GitHub repository secrets (set in Settings → Secrets → Actions):
 
@@ -60,7 +60,7 @@ Required GitHub repository secrets (set in Settings → Secrets → Actions):
 
 The deploy job uses a `production` environment, so you can configure environment protection rules in GitHub if desired.
 
-Worker secrets (`OAUTH_JWT_SIGNING_KEY_B64`, `UPSTREAM_CONFIG_ENC_KEY_B64`, `CSRF_SIGNING_KEY_B64`) are auto-initialized on first deploy if they don't exist yet. This means the Worker can be created from scratch without any manual secret setup.
+Worker secrets (`OAUTH_JWT_SIGNING_KEY_B64`, `UPSTREAM_CONFIG_ENC_KEY_B64`, `CSRF_SIGNING_KEY_B64`) are auto-initialized on first deploy if they don't exist yet. For a brand-new Worker, CI first creates the Worker with a bootstrap deploy, then sets the missing secrets, then deploys again. This keeps fresh environments working without manual secret setup.
 
 ### Manual deploy
 

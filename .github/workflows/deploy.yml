@@ -52,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Initialize missing Worker secrets
+      - name: Bootstrap Worker and initialize missing Worker secrets
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -60,8 +60,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          if ! existing_secret_names="$(npx wrangler secret list --format json | jq -r '.[].name')"; then
+          secret_list_stderr="$(mktemp)"
+
+          if existing_secret_names="$(npx wrangler secret list --format json 2>"$secret_list_stderr" | jq -r '.[].name')"; then
+            rm -f "$secret_list_stderr"
+          elif grep -Fq 'Worker "' "$secret_list_stderr" && grep -Fq 'not found' "$secret_list_stderr"; then
+            rm -f "$secret_list_stderr"
+            echo "Worker does not exist yet. Running bootstrap deploy before secret initialization."
+
+            npx wrangler deploy
+
+            if ! existing_secret_names="$(npx wrangler secret list --format json | jq -r '.[].name')"; then
+              echo "Failed to list existing Worker secrets after bootstrap deploy." >&2
+              exit 1
+            fi
+          else
             echo "Failed to list existing Worker secrets before deploy." >&2
+            cat "$secret_list_stderr" >&2
+            rm -f "$secret_list_stderr"
             exit 1
           fi
 

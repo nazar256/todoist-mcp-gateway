@@ -76,7 +76,7 @@ The current implementation uses JSON responses for request/response compatibilit
 
 - GitHub Actions CI/CD pipeline at `.github/workflows/deploy.yml`.
 - Every push to `main` runs `npm run typecheck` and `npm test` before deploying.
-- Deploy job auto-initializes missing Worker secrets with random 32-byte keys on first deploy.
+- Deploy job bootstraps a brand-new Worker if needed, then auto-initializes missing Worker secrets with random 32-byte keys on first deploy.
 - Required GitHub repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 - Keep non-secret values in `wrangler.toml`.
 - Use HTTPS issuer/resource values in production.

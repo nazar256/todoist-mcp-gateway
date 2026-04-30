@@ -93,6 +93,7 @@ Status legend:
 - [x] Document stateless operational caveats.
 - [x] Add GitHub Actions CI/CD pipeline (test + typecheck + deploy).
 - [x] Auto-initialize Worker secrets on first deploy.
+- [x] Bootstrap a brand-new Worker before secret initialization so first CI deploy succeeds from scratch.
 - [ ] Deploy to a real Worker environment.
 - [ ] Capture deployed endpoint values and smoke-test evidence.
 

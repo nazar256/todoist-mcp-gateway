@@ -76,7 +76,7 @@
 - [ ] Smoke test steps are documented.
 - [ ] Key rotation and user revocation guidance are documented.
 - [ ] GitHub Actions CI/CD pipeline runs `npm run typecheck` and `npm test` before deploy.
-- [ ] CI auto-initializes missing Worker secrets on first deploy.
+- [ ] CI auto-initializes missing Worker secrets on first deploy, including the brand-new Worker bootstrap case.
 - [ ] GitHub repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are configured.
 
 ## Final review checklist
