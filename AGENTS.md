@@ -14,3 +14,4 @@
 - Keep `docs/` updated when architecture, behavior, requirements, or operations change.
 - After meaningful changes, update `docs/tasks.md` and `docs/implementation-log.md` to reflect actual state.
 - Run `npm run typecheck` and relevant tests before declaring work complete; run `npm run check` before final completion of a substantial phase.
+- CI/CD: GitHub Actions runs `npm run typecheck` and `npm test` on every push to `main` before deploying. Do not merge code that breaks CI.

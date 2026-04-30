@@ -45,6 +45,7 @@
 - Deduplicated `toBufferSource` helper between `crypto.ts` and `csrf.ts`.
 - Documented `registerScopedTool` `any` type as a pragmatic MCP SDK workaround.
 - Polished `README.md` for publish readiness: route table, configuration sections, local dev guide, `.dev.vars` instructions, structured tool coverage table.
+- Added GitHub Actions CI/CD pipeline: test + typecheck gate before deploy, auto-initialize Worker secrets on first deploy.
 
 ### Decisions
 - Issuer string is now `stripOriginTrailingSlash(url)` — bare origins like `https://x.workers.dev` no longer get a trailing `/`. This matches RFC 8414 and avoids mismatch between wrangler.toml config and JWT `iss` claims.

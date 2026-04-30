@@ -105,6 +105,22 @@ wrangler secret put CSRF_SIGNING_KEY_B64
 
 ## Deploy
 
+### CI/CD (GitHub Actions)
+
+Every push to `main` triggers the deploy workflow (`.github/workflows/deploy.yml`):
+
+1. **check** — `npm run typecheck` + `npm test`
+2. **deploy** — auto-initializes missing Worker secrets, then `wrangler deploy`
+
+Required GitHub repository secrets:
+
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with Workers permissions
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID
+
+Worker secrets are auto-generated on first deploy, so a fresh Worker can be created from scratch without manual secret setup.
+
+### Manual deploy
+
 ```bash
 npm run deploy
 ```

@@ -91,6 +91,8 @@ Status legend:
 - [x] Document local development and deploy steps.
 - [x] Document ChatGPT connector setup.
 - [x] Document stateless operational caveats.
+- [x] Add GitHub Actions CI/CD pipeline (test + typecheck + deploy).
+- [x] Auto-initialize Worker secrets on first deploy.
 - [ ] Deploy to a real Worker environment.
 - [ ] Capture deployed endpoint values and smoke-test evidence.
 

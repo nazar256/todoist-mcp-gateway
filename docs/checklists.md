@@ -69,12 +69,15 @@
 
 ## Deployment checklist
 
-- [ ] Wrangler secrets are generated and set.
+- [ ] Wrangler secrets are generated and set (or auto-initialized by CI).
 - [ ] Production issuer/resource/audience values are HTTPS.
 - [ ] Deployment command is documented.
 - [ ] ChatGPT connector values are documented.
 - [ ] Smoke test steps are documented.
 - [ ] Key rotation and user revocation guidance are documented.
+- [ ] GitHub Actions CI/CD pipeline runs `npm run typecheck` and `npm test` before deploy.
+- [ ] CI auto-initializes missing Worker secrets on first deploy.
+- [ ] GitHub repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are configured.
 
 ## Final review checklist
 
