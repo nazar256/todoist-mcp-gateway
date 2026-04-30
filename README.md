@@ -36,11 +36,12 @@ npm run dev
 
 1. Client discovers OAuth metadata at `GET /.well-known/oauth-authorization-server`
 2. Client registers its redirect URI at `POST /register`
-3. User is redirected to `GET /authorize` and sees a consent form
-4. User pastes their Todoist API token (from **Todoist → Settings → Integrations → Developer**)
-5. Gateway validates the token against Todoist, encrypts it with AES-GCM, and issues a signed JWT auth code
-6. Client exchanges the auth code at `POST /token`
-7. Client calls `/mcp` with the bearer token; the Worker verifies the JWT, decrypts the Todoist config, and serves MCP requests
+3. Client can resolve the registered public client at `GET /register/:client_id`
+4. User is redirected to `GET /authorize` and sees a consent form
+5. User pastes their Todoist API token (from **Todoist → Settings → Integrations → Developer**)
+6. Gateway validates the token against Todoist, encrypts it with AES-GCM, and issues a signed JWT auth code
+7. Client exchanges the auth code at `POST /token`
+8. Client calls `/mcp` with the bearer token; the Worker verifies the JWT, decrypts the Todoist config, and serves MCP requests
 
 `tools/list` is always returned for connector compatibility, but tool calls are enforced at invocation time based on the token's granted scope.
 
@@ -61,6 +62,7 @@ npm run dev
 | GET | `/.well-known/oauth-protected-resource` | Protected resource metadata |
 | GET | `/.well-known/oauth-protected-resource/mcp` | Protected resource metadata for `/mcp` |
 | POST | `/register` | Dynamic client registration |
+| GET | `/register/:client_id` | Resolve a previously registered public client |
 | GET | `/authorize` | Render consent form |
 | POST | `/authorize` | Submit consent form |
 | POST | `/token` | Token exchange |
