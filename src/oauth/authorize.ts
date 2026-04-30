@@ -91,8 +91,10 @@ async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof
   const client = new TodoistClient(token, fetchImpl);
   try {
     await client.get('/projects');
-  } catch {
-    throw new HttpError(400, 'access_denied', 'Todoist API token is invalid');
+  } catch (error) {
+    if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+      throw new HttpError(400, 'access_denied', 'Todoist API token is invalid');
+    }
   }
 }
 

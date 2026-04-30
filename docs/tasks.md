@@ -79,6 +79,7 @@ Status legend:
 
 - [x] Add config tests.
 - [x] Add OAuth metadata/registration/authorize/token tests.
+- [x] Soften `/authorize` Todoist token validation so only explicit upstream auth failures block consent.
 - [x] Add crypto/redaction tests.
 - [x] Add MCP auth tests.
 - [x] Add Todoist client tests.

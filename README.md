@@ -39,7 +39,7 @@ npm run dev
 3. Client can resolve the registered public client at `GET /register/:client_id`
 4. User is redirected to `GET /authorize` and sees a consent form
 5. User pastes their Todoist API token (from **Todoist → Settings → Integrations → Developer**)
-6. Gateway validates the token against Todoist, encrypts it with AES-GCM, and issues a signed JWT auth code
+6. Gateway does a lightweight Todoist token check, encrypts it with AES-GCM, and issues a signed JWT auth code
 7. Client exchanges the auth code at `POST /token`
 8. Client calls `/mcp` with the bearer token; the Worker verifies the JWT, decrypts the Todoist config, and serves MCP requests
 
