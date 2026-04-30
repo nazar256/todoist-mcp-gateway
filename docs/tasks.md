@@ -24,6 +24,7 @@ Status legend:
 - [x] Implement authorization server metadata endpoint.
 - [x] Implement protected resource metadata endpoints.
 - [x] Implement dynamic client registration with redirect allowlist validation.
+- [x] Add stateless registered-client resolution for dynamic client registration compatibility.
 - [x] Implement `/authorize` GET request validation and consent form rendering.
 - [x] Implement `/authorize` POST validation, CSRF handling, and Todoist token validation.
 - [ ] Verify end-to-end with a real deployed ChatGPT connector.

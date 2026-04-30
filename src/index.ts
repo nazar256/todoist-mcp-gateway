@@ -2,7 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { parseConfig, type Env } from './config';
 import { handleAuthorizeGet, handleAuthorizePost } from './oauth/authorize';
 import { getAuthorizationServerMetadata, getProtectedResourceMetadata } from './oauth/metadata';
-import { handleRegister } from './oauth/register';
+import { handleRegister, handleRegisterGet } from './oauth/register';
 import { getTodoistConfigFromAccessToken, handleToken } from './oauth/token';
 import { resolveIssuerPath } from './oauth/urls';
 import { asError, HttpError } from './security/validators';
@@ -164,6 +164,11 @@ async function routeRequest(request: Request, env: Env): Promise<Response> {
 
   if (request.method === 'POST' && url.pathname === '/register') {
     return handleRegister(request, config);
+  }
+
+  if (request.method === 'GET' && url.pathname.startsWith('/register/')) {
+    const clientId = decodeURIComponent(url.pathname.slice('/register/'.length));
+    return handleRegisterGet(request, config, clientId);
   }
 
   if (request.method === 'GET' && url.pathname === '/authorize') {

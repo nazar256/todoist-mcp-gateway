@@ -87,11 +87,12 @@ https://<your-worker>/mcp
 2. `GET /.well-known/oauth-authorization-server`
 3. `GET /.well-known/oauth-protected-resource`
 4. `POST /register` with a valid ChatGPT redirect URI
-5. Visit `/authorize` and confirm consent form renders correctly
-6. Submit a valid Todoist developer token
-7. Exchange auth code at `/token`
-8. Call `/mcp` with bearer token and confirm `tools/list` works
-9. Call at least one read tool and one mutation tool against a real Todoist account
+5. Resolve the returned `registration_client_uri` with the returned `registration_access_token`
+6. Visit `/authorize` and confirm consent form renders correctly
+7. Submit a valid Todoist developer token
+8. Exchange auth code at `/token`
+9. Call `/mcp` with bearer token and confirm `tools/list` works
+10. Call at least one read tool and one mutation tool against a real Todoist account
 
 ## Key rotation notes
 
@@ -109,6 +110,13 @@ Users can revoke access by revoking or regenerating their Todoist developer toke
 
 - Check that the redirect URI host matches `OAUTH_REDIRECT_HTTPS_HOSTS`.
 - Check that production redirect URIs use HTTPS.
+- Check that the registration response includes `client_id`, `client_id_issued_at`, `registration_client_uri`, and `registration_access_token`.
+
+### Registration client resolution fails
+
+- Check that `GET /register/:client_id` uses `Authorization: Bearer <registration_access_token>`.
+- Check that the `client_id` path segment matches the original registration response exactly.
+- Re-register the client if the Worker issuer or redirect allowlist changed.
 
 ### Authorization form rejects submission
 
