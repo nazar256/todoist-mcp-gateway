@@ -13,7 +13,7 @@ export function createEnv(overrides: Partial<Env> = {}, fetchImpl?: typeof fetch
     MCP_RESOURCE: 'https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp',
     MCP_AUDIENCE: 'https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp',
     OAUTH_REDIRECT_HTTPS_HOSTS: 'chatgpt.com,*.chatgpt.com,github.com,*.github.com,claude.ai,*.claude.ai,anthropic.com,*.anthropic.com,localhost',
-    ACCESS_TOKEN_TTL_SECONDS: '43200',
+    ACCESS_TOKEN_TTL_SECONDS: '31536000',
     AUTH_CODE_TTL_SECONDS: '120',
     REFRESH_TOKEN_TTL_SECONDS: '2592000',
     ENABLE_REFRESH_TOKENS: 'true',

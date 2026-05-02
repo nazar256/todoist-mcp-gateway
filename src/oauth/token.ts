@@ -5,6 +5,26 @@ import { asError, HttpError, normalizeScope, validateCodeVerifier, validateOptio
 import { createS256CodeChallenge } from './pkce';
 import type { AuthCodeClaims } from './authorize';
 
+const MIN_ACCESS_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+const MAX_ACCESS_TOKEN_TTL_SECONDS = 365 * 24 * 60 * 60;
+
+function resolveAccessTokenTtlSeconds(authCodeClaims: AuthCodeClaims, fallbackTtlSeconds: number): number {
+  const override = authCodeClaims.access_token_ttl_seconds;
+  if (override === undefined) {
+    return fallbackTtlSeconds;
+  }
+
+  if (!Number.isInteger(override)) {
+    throw new HttpError(400, 'invalid_grant', 'Authorization code contains invalid access token expiration');
+  }
+
+  if (override < MIN_ACCESS_TOKEN_TTL_SECONDS || override > MAX_ACCESS_TOKEN_TTL_SECONDS) {
+    throw new HttpError(400, 'invalid_grant', 'Authorization code contains invalid access token expiration');
+  }
+
+  return override;
+}
+
 export interface AccessTokenClaims {
   typ: 'todoist_mcp_access_token';
   iss: string;
@@ -68,13 +88,14 @@ async function issueAccessToken(config: AppConfig, claims: {
   resource: string;
   scope: string;
   encConfig: EncryptedEnvelope;
+  ttlSeconds?: number;
 }): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const accessClaims: AccessTokenClaims = {
     typ: 'todoist_mcp_access_token',
     iss: config.issuer,
     aud: config.mcpAudience,
-    exp: now + config.accessTokenTtlSeconds,
+    exp: now + (claims.ttlSeconds ?? config.accessTokenTtlSeconds),
     iat: now,
     jti: crypto.randomUUID(),
     client_id: claims.clientId,
@@ -165,6 +186,8 @@ export async function handleToken(request: Request, config: AppConfig): Promise<
         throw new HttpError(400, 'invalid_grant', 'PKCE verification failed');
       }
 
+      const accessTokenTtlSeconds = resolveAccessTokenTtlSeconds(claims, config.accessTokenTtlSeconds);
+
       const todoistConfig = await decryptJson<{ v: 1; todoistApiToken: string }>(
         claims.enc_config,
         config.upstreamConfigEncryptionKey,
@@ -192,12 +215,13 @@ export async function handleToken(request: Request, config: AppConfig): Promise<
         resource,
         scope: claims.scope,
         encConfig: accessEncConfig,
+        ttlSeconds: accessTokenTtlSeconds,
       });
 
       const response: Record<string, unknown> = {
         access_token: accessToken,
         token_type: 'Bearer',
-        expires_in: config.accessTokenTtlSeconds,
+        expires_in: accessTokenTtlSeconds,
         scope: claims.scope,
       };
 
@@ -283,6 +307,7 @@ export async function handleToken(request: Request, config: AppConfig): Promise<
         resource,
         scope: claims.scope,
         encConfig: accessEncConfig,
+        ttlSeconds: config.accessTokenTtlSeconds,
       });
       const nextRefreshToken = await issueRefreshToken(config, {
         clientId,

@@ -20,6 +20,7 @@ async function issueAuthorizationCode(envOverrides = {}) {
     code_challenge_method: 'S256',
     resource: config.mcpResource,
     scope: 'todoist.read todoist.write',
+    token_expiration_preset: '365',
     csrf_token: await (await import('../src/security/csrf')).createCsrfToken(config.csrfSigningKey, {
       exp: Math.floor(Date.now() / 1000) + 600,
       client_id: await (await import('../src/oauth/validation')).deriveClientId(config, 'https://chatgpt.com/aip/mcp/callback'),
@@ -101,6 +102,7 @@ describe('oauth token', () => {
       code_challenge_method: 'S256',
       resource: config.mcpResource,
       scope: 'todoist.read',
+      token_expiration_preset: '365',
       csrf_token: await (await import('../src/security/csrf')).createCsrfToken(config.csrfSigningKey, {
         exp: Math.floor(Date.now() / 1000) + 600,
         client_id: clientId,
@@ -146,6 +148,7 @@ describe('oauth token', () => {
       code_challenge_method: 'S256',
       resource: config.mcpResource,
       scope: 'todoist.read',
+      token_expiration_preset: '365',
       csrf_token: await (await import('../src/security/csrf')).createCsrfToken(config.csrfSigningKey, {
         exp: Math.floor(Date.now() / 1000) + 600,
         client_id: clientId,
@@ -168,5 +171,83 @@ describe('oauth token', () => {
 
     expect(response.status).toBe(200);
     expect(((await response.json()) as any).access_token).toBeTruthy();
+  });
+
+  it('uses access token TTL override from authorization code when provided', async () => {
+    const env = createEnv();
+    const config = parseConfig(env);
+    const codeVerifier = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._~';
+    const redirectUri = 'https://chatgpt.com/aip/mcp/callback';
+    const clientId = await (await import('../src/oauth/validation')).deriveClientId(config, redirectUri);
+    const form = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      state: 'state-123',
+      code_challenge: await createS256CodeChallenge(codeVerifier),
+      code_challenge_method: 'S256',
+      resource: config.mcpResource,
+      scope: 'todoist.read',
+      token_expiration_preset: '30',
+      csrf_token: await (await import('../src/security/csrf')).createCsrfToken(config.csrfSigningKey, {
+        exp: Math.floor(Date.now() / 1000) + 600,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        state: 'state-123',
+      }),
+      todoist_api_token: 'secret-token',
+    });
+
+    const upstreamFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: 'p1' }]))) as unknown as typeof fetch;
+    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, upstreamFetch);
+    const code = new URL(authorize.headers.get('location')!).searchParams.get('code')!;
+
+    const token = await handleToken(new Request('https://gateway.test/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: redirectUri, code_verifier: codeVerifier, resource: config.mcpResource }),
+    }), config);
+
+    const body = await token.json() as any;
+    expect(token.status).toBe(200);
+    expect(body.expires_in).toBe(30 * 24 * 60 * 60);
+  });
+
+  it('rejects authorization codes with out-of-range access token TTL override', async () => {
+    const env = createEnv();
+    const config = parseConfig(env);
+    const now = Math.floor(Date.now() / 1000);
+
+    const badCode = await signJwt({
+      typ: 'todoist_mcp_auth_code',
+      iss: config.issuer,
+      aud: config.issuer,
+      exp: now + config.authCodeTtlSeconds,
+      iat: now,
+      jti: crypto.randomUUID(),
+      client_id: 'c',
+      redirect_uri: 'https://chatgpt.com/aip/mcp/callback',
+      code_challenge: await createS256CodeChallenge('x'.repeat(43)),
+      code_challenge_method: 'S256',
+      resource: config.mcpResource,
+      scope: 'todoist.read',
+      enc_config: { v: 1, alg: 'A256GCM', iv: 'aaaaaaaaaaaaaaaa', ct: 'bbbbbbbbbbbbbbbb' },
+      access_token_ttl_seconds: 0,
+    } as any, config.oauthJwtSigningKey, 'JWT');
+
+    const response = await handleToken(new Request('https://gateway.test/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: badCode,
+        client_id: 'c',
+        redirect_uri: 'https://chatgpt.com/aip/mcp/callback',
+        code_verifier: 'x'.repeat(43),
+        resource: config.mcpResource,
+      }),
+    }), config);
+
+    expect(response.status).toBe(400);
   });
 });

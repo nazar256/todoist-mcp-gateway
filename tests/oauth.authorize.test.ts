@@ -73,7 +73,7 @@ describe('oauth authorize', () => {
   it('sets security headers', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
-    expect(response.headers.get('content-security-policy')).not.toContain('form-action');
+    expect(response.headers.get('content-security-policy')).toContain("form-action 'self'");
     expect(response.headers.get('x-frame-options')).toBe('DENY');
   });
 
@@ -106,11 +106,19 @@ describe('oauth authorize', () => {
     expect(response.status).toBe(400);
   });
 
+  it('renders access token expiration controls', async () => {
+    const response = await dispatch(new Request(await authorizeUrl()), createEnv());
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain('name="token_expiration_preset"');
+    expect(html).toContain('name="token_expiration_days"');
+  });
+
   it('rejects empty Todoist token', async () => {
     const getResponse = await dispatch(new Request(await authorizeUrl()), createEnv());
     const html = await getResponse.text();
     const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
       form.set(name, extractFormValue(html, name));
     }
     form.set('todoist_api_token', '   ');
@@ -124,7 +132,7 @@ describe('oauth authorize', () => {
     const getResponse = await dispatch(new Request(await authorizeUrl()), env);
     const html = await getResponse.text();
     const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
       form.set(name, extractFormValue(html, name));
     }
     form.set('todoist_api_token', 'secret-todoist-token');
@@ -146,7 +154,7 @@ describe('oauth authorize', () => {
     const getResponse = await dispatch(new Request(await authorizeUrl()), env);
     const html = await getResponse.text();
     const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
       form.set(name, extractFormValue(html, name));
     }
     form.set('todoist_api_token', 'secret-todoist-token');
@@ -167,7 +175,7 @@ describe('oauth authorize', () => {
     const getResponse = await dispatch(new Request(await authorizeUrl()), env);
     const html = await getResponse.text();
     const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
       form.set(name, extractFormValue(html, name));
     }
     form.set('todoist_api_token', 'secret-todoist-token');
@@ -202,7 +210,7 @@ describe('oauth authorize', () => {
     expect(html).not.toContain('name="state"');
 
     const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
       form.set(name, extractFormValue(html, name));
     }
     form.set('todoist_api_token', 'secret-todoist-token');
@@ -217,5 +225,50 @@ describe('oauth authorize', () => {
     const location = response.headers.get('location') ?? '';
     expect(location).toContain('code=');
     expect(location).not.toContain('state=');
+  });
+
+  it('rejects invalid access token expiration selection', async () => {
+    const upstreamFetch = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1', name: 'Inbox' }]));
+    const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
+    const getResponse = await dispatch(new Request(await authorizeUrl()), env);
+    const html = await getResponse.text();
+
+    const form = new URLSearchParams();
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+      form.set(name, extractFormValue(html, name));
+    }
+    form.set('token_expiration_preset', '999');
+    form.set('todoist_api_token', 'secret-todoist-token');
+
+    const response = await dispatch(new Request('https://gateway.test/authorize', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: form,
+    }), env);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects custom access token expiration above maximum', async () => {
+    const upstreamFetch = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1', name: 'Inbox' }]));
+    const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
+    const getResponse = await dispatch(new Request(await authorizeUrl()), env);
+    const html = await getResponse.text();
+
+    const form = new URLSearchParams();
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+      form.set(name, extractFormValue(html, name));
+    }
+    form.set('token_expiration_preset', 'custom');
+    form.set('token_expiration_days', '366');
+    form.set('todoist_api_token', 'secret-todoist-token');
+
+    const response = await dispatch(new Request('https://gateway.test/authorize', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: form,
+    }), env);
+
+    expect(response.status).toBe(400);
   });
 });

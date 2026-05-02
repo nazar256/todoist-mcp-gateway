@@ -26,6 +26,56 @@ export interface AuthCodeClaims {
   resource: string;
   scope: string;
   enc_config: EncryptedEnvelope;
+  access_token_ttl_seconds?: number;
+}
+
+const DEFAULT_ACCESS_TOKEN_DAYS = 365;
+const ALLOWED_ACCESS_TOKEN_PRESET_DAYS = new Set([30, 90, 365]);
+const MIN_ACCESS_TOKEN_DAYS = 1;
+const MAX_ACCESS_TOKEN_DAYS = 365;
+
+function parseWholeDays(value: string): number | null {
+  if (!/^\d+$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function resolveAccessTokenTtlSeconds(fields: URLSearchParams): number | null {
+  const preset = fields.get('token_expiration_preset')?.trim() ?? '';
+  const customDaysRaw = fields.get('token_expiration_days')?.trim() ?? '';
+
+  let days = DEFAULT_ACCESS_TOKEN_DAYS;
+
+  if (preset === 'custom') {
+    if (!customDaysRaw) {
+      return null;
+    }
+
+    const customDays = parseWholeDays(customDaysRaw);
+    if (customDays === null) {
+      return null;
+    }
+    days = customDays;
+  } else if (preset.length > 0) {
+    const presetDays = parseWholeDays(preset);
+    if (presetDays === null || !ALLOWED_ACCESS_TOKEN_PRESET_DAYS.has(presetDays)) {
+      return null;
+    }
+    days = presetDays;
+  }
+
+  if (days < MIN_ACCESS_TOKEN_DAYS || days > MAX_ACCESS_TOKEN_DAYS) {
+    return null;
+  }
+
+  return days * 24 * 60 * 60;
 }
 
 function htmlEscape(value: string): string {
@@ -43,7 +93,7 @@ function htmlResponse(body: string, status = 200): Response {
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'x-frame-options': 'DENY',
@@ -73,6 +123,18 @@ function renderConsentForm(params: {
     <form method="post" action="/authorize">
       <label for="todoist_api_token"><strong>Todoist API token</strong></label><br />
       <input id="todoist_api_token" name="todoist_api_token" type="password" autocomplete="off" spellcheck="false" required style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
+
+      <label for="token_expiration_preset"><strong>Gateway access token expiration</strong></label><br />
+      <select id="token_expiration_preset" name="token_expiration_preset" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;">
+        <option value="30">30 days</option>
+        <option value="90">90 days</option>
+        <option value="365" selected>1 year (default)</option>
+        <option value="custom">Custom days</option>
+      </select>
+
+      <label for="token_expiration_days">Custom expiration (days)</label><br />
+      <input id="token_expiration_days" name="token_expiration_days" type="number" min="1" max="365" disabled style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
+
       <input type="hidden" name="response_type" value="${htmlEscape(request.responseType)}" />
       <input type="hidden" name="client_id" value="${htmlEscape(request.clientId)}" />
       <input type="hidden" name="redirect_uri" value="${htmlEscape(request.redirectUri)}" />
@@ -84,6 +146,22 @@ function renderConsentForm(params: {
       <input type="hidden" name="csrf_token" value="${htmlEscape(csrfToken)}" />
       <button type="submit">Authorize</button>
     </form>
+    <script>
+      const preset = document.getElementById('token_expiration_preset');
+      const customDays = document.getElementById('token_expiration_days');
+      if (preset instanceof HTMLSelectElement && customDays instanceof HTMLInputElement) {
+        const syncCustomState = () => {
+          const isCustom = preset.value === 'custom';
+          customDays.disabled = !isCustom;
+          customDays.required = isCustom;
+          if (!isCustom) {
+            customDays.value = '';
+          }
+        };
+        preset.addEventListener('change', syncCustomState);
+        syncCustomState();
+      }
+    </script>
   </body>
 </html>`, 200);
 }
@@ -134,6 +212,14 @@ export async function handleAuthorizePost(
   }
 
   const authorizationRequest = await parseAuthorizeForm(fields, config);
+  const accessTokenTtlSeconds = resolveAccessTokenTtlSeconds(fields);
+  if (accessTokenTtlSeconds === null) {
+    throw new HttpError(
+      400,
+      'invalid_request',
+      'Access token expiration must be 1-365 days with a valid preset or custom days.',
+    );
+  }
   const csrfToken = validateNonEmptyInput(fields.get('csrf_token'), 'csrf_token');
   const csrfPayload = await verifyCsrfToken(config.csrfSigningKey, csrfToken);
   if (
@@ -195,6 +281,7 @@ export async function handleAuthorizePost(
     resource: authorizationRequest.resource,
     scope: authorizationRequest.scope,
     enc_config: encConfig,
+    access_token_ttl_seconds: accessTokenTtlSeconds,
   };
 
   const code = await signJwt(claims as unknown as Record<string, unknown>, config.oauthJwtSigningKey, 'JWT');
