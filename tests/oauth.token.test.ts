@@ -131,4 +131,42 @@ describe('oauth token', () => {
     expect(refreshed.status).toBe(200);
     expect(((await refreshed.json()) as any).access_token).toBeTruthy();
   });
+
+  it('issues tokens when authorization code was granted without state', async () => {
+    const env = createEnv({}, vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: 'p1' }]))) as unknown as typeof fetch);
+    const config = parseConfig(env);
+    const codeVerifier = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._~';
+    const redirectUri = 'https://chatgpt.com/aip/mcp/callback';
+    const clientId = await (await import('../src/oauth/validation')).deriveClientId(config, redirectUri);
+    const form = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      code_challenge: await createS256CodeChallenge(codeVerifier),
+      code_challenge_method: 'S256',
+      resource: config.mcpResource,
+      scope: 'todoist.read',
+      csrf_token: await (await import('../src/security/csrf')).createCsrfToken(config.csrfSigningKey, {
+        exp: Math.floor(Date.now() / 1000) + 600,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+      }),
+      todoist_api_token: 'secret-token',
+    });
+
+    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, env.fetch!);
+    const location = new URL(authorize.headers.get('location')!);
+    const code = location.searchParams.get('code')!;
+
+    expect(location.searchParams.has('state')).toBe(false);
+
+    const response = await handleToken(new Request('https://gateway.test/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: redirectUri, code_verifier: codeVerifier, resource: config.mcpResource }),
+    }), config);
+
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as any).access_token).toBeTruthy();
+  });
 });

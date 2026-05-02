@@ -15,6 +15,19 @@ describe('oauth register', () => {
     expect(body.token_endpoint_auth_method).toBe('none');
   });
 
+  it('accepts HTTP loopback redirect URI for native OAuth clients', async () => {
+    const response = await dispatch(new Request('https://gateway.test/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ redirect_uris: ['http://127.0.0.1:8976/oauth/callback'] }),
+    }), createEnv());
+
+    expect(response.status).toBe(201);
+    const body = await response.json() as any;
+    expect(body.redirect_uris).toEqual(['http://127.0.0.1:8976/oauth/callback']);
+    expect(body.token_endpoint_auth_method).toBe('none');
+  });
+
   it('rejects unallowed host', async () => {
     const response = await dispatch(new Request('https://gateway.test/register', {
       method: 'POST',

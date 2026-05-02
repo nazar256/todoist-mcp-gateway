@@ -1,8 +1,17 @@
 import { HttpError, validateSafePathSegment } from '../security/validators';
 import type { SyncCommand } from './types';
 
-const REST_BASE_URL = 'https://api.todoist.com/rest/v2';
-const SYNC_BASE_URL = 'https://api.todoist.com/sync/v9';
+const REST_BASE_URL = 'https://api.todoist.com/api/v1';
+const SYNC_BASE_URL = 'https://api.todoist.com/api/v1';
+
+type PaginatedResults<T> = {
+  results: T[];
+  next_cursor?: string | null;
+};
+
+function isPaginatedResults(value: unknown): value is PaginatedResults<unknown> {
+  return typeof value === 'object' && value !== null && 'results' in value && Array.isArray((value as { results?: unknown }).results);
+}
 
 export class TodoistClient {
   private readonly todoistApiToken: string;
@@ -10,7 +19,7 @@ export class TodoistClient {
 
   constructor(todoistApiToken: string, fetchImpl: typeof fetch = fetch) {
     this.todoistApiToken = todoistApiToken;
-    this.fetchImpl = fetchImpl;
+    this.fetchImpl = (input: RequestInfo | URL, init?: RequestInit) => fetchImpl(input, init);
   }
 
   private buildHeaders(withJsonBody = false): Headers {
@@ -75,7 +84,8 @@ export class TodoistClient {
   }
 
   async get(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<unknown> {
-    return this.request('GET', REST_BASE_URL, path, params ? { params } : undefined);
+    const data = await this.request('GET', REST_BASE_URL, path, params ? { params } : undefined);
+    return isPaginatedResults(data) ? data.results : data;
   }
 
   async post(path: string, body?: unknown): Promise<unknown> {
@@ -91,7 +101,19 @@ export class TodoistClient {
   }
 
   async getCompletedTasks(params?: Record<string, string>): Promise<unknown> {
-    return this.request('GET', SYNC_BASE_URL, '/completed/get_all', params ? { params } : undefined);
+    const normalizedParams = { ...params };
+    if (!normalizedParams.since) {
+      normalizedParams.since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+    if (!normalizedParams.until) {
+      normalizedParams.until = new Date().toISOString();
+    }
+
+    const data = await this.request('GET', REST_BASE_URL, '/tasks/completed/by_completion_date', { params: normalizedParams });
+    if (typeof data === 'object' && data !== null && 'items' in data && Array.isArray((data as { items?: unknown }).items)) {
+      return (data as { items: unknown[] }).items;
+    }
+    return data;
   }
 
   static encodePathParam(value: string, fieldName: string): string {

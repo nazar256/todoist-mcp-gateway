@@ -18,8 +18,17 @@ export interface BatchResult {
   results: BatchItemResult[];
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export function createJsonContentResult(data: unknown, isError = false): CallToolResult {
-  const structuredContent = data && typeof data === 'object' ? (data as Record<string, unknown>) : undefined;
+  const structuredContent = isPlainObject(data)
+    ? data
+    : Array.isArray(data)
+      ? { items: data }
+      : undefined;
+
   return {
     isError: isError || undefined,
     structuredContent,

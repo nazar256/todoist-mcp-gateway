@@ -19,6 +19,33 @@
 - Added stateless registered-client resolution for dynamic client registration by returning a non-zero `client_id_issued_at`, a `registration_access_token`, and a `registration_client_uri`, plus a read-only `GET /register/:client_id` lookup path for connector compatibility.
 - Made the `/authorize` consent form post to an absolute same-origin URL and added that origin explicitly to the CSP `form-action` directive so browsers do not block the Authorize button.
 
+## 2026-05-02
+
+### Completed
+- Verified that ChatGPT connector discovery should use the deployed `/mcp` resource URL, while OAuth endpoints are discovered from the Worker root issuer.
+- Fixed ChatGPT connector OAuth submit compatibility by removing the restrictive authorize-page `form-action` CSP and using a relative `/authorize` form action.
+- Fixed native/CLI OAuth compatibility by allowing loopback redirect URIs and treating OAuth `state` as optional when omitted by the client.
+- Reproduced real MCP behavior with `mcpc` against local Worker dev instead of relying only on ChatGPT browser testing.
+- Fixed MCP tool result shaping so array results are emitted as `structuredContent: { items: [...] }` instead of invalid top-level arrays.
+- Fixed Cloudflare Worker `Illegal invocation` runtime failures by wrapping stored `fetch` usage in the Todoist client instead of depending on an unbound Web API reference.
+- Verified with direct Todoist HTTP calls that legacy `/rest/v2` and `/sync/v9` assumptions were stale because Todoist now serves the active API under `/api/v1` and returns `410 Gone` for the old endpoints.
+- Checked the latest official Todoist SDK and kept the repo on a small custom Worker-safe client rather than adding a Node-oriented runtime dependency.
+- Migrated the Todoist client to `/api/v1`, kept sync on `/api/v1/sync`, and normalized Todoist v1 paginated list responses (`{ results, next_cursor }`) and completed-task responses (`{ items }`) into stable MCP-facing arrays.
+- Added regression coverage for the runtime/compatibility issues above and revalidated locally with real `mcpc` OAuth + MCP tool calls.
+
+### Evidence
+- Local `mcpc` OAuth + MCP succeeded after fixes.
+- Local harmless tool calls succeeded against a real Todoist account: `get_projects_list`, `get_labels_list`, `get_tasks_list`, `get_completed_tasks`, and `utils_get_colors`.
+- Direct raw HTTP with the same Todoist token confirmed `/api/v1/*` works and old `/rest/v2/*` endpoints are deprecated.
+
+### Decisions
+- For Worker-only MCP gateways, prefer a thin Worker-safe typed `fetch` client when the official upstream SDK is current but Node-oriented or otherwise unnecessary for the runtime.
+- Keep MCP tool UX stable even when upstream APIs use pagination envelopes or response wrappers; normalize those shapes centrally in the integration layer.
+
+### Next Steps
+- Deploy the Todoist v1 migration and runtime fixes to the real Worker.
+- Validate representative remote MCP calls against the deployed server using a real OAuth-capable MCP client.
+
 ### Decisions
 - Use Cloudflare Workers and keep the gateway stateless.
 - Collect a user-provided Todoist developer token during OAuth consent for v1.

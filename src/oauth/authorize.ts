@@ -37,14 +37,13 @@ function htmlEscape(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function htmlResponse(body: string, status = 200, formActionOrigin?: string): Response {
-  const formAction = formActionOrigin ? `'self' ${formActionOrigin}` : "'self'";
+function htmlResponse(body: string, status = 200): Response {
   return new Response(body, {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': `default-src 'none'; style-src 'unsafe-inline'; form-action ${formAction}; base-uri 'none'; frame-ancestors 'none'`,
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'x-frame-options': 'DENY',
@@ -59,7 +58,6 @@ function renderConsentForm(params: {
   error?: string;
 }): Response {
   const { request, csrfToken, formActionUrl, error } = params;
-  const formActionOrigin = new URL(formActionUrl).origin;
   return htmlResponse(`<!doctype html>
 <html lang="en">
   <head>
@@ -72,13 +70,13 @@ function renderConsentForm(params: {
     <p>This gateway needs your Todoist API token to call Todoist on your behalf. The token is encrypted and carried inside signed gateway tokens. It is not stored server-side.</p>
     <p>Find your token in <strong>Todoist → Settings → Integrations → Developer token</strong>.</p>
     ${error ? `<p style="color: #b00020;"><strong>${htmlEscape(error)}</strong></p>` : ''}
-    <form method="post" action="${htmlEscape(formActionUrl)}">
+    <form method="post" action="/authorize">
       <label for="todoist_api_token"><strong>Todoist API token</strong></label><br />
       <input id="todoist_api_token" name="todoist_api_token" type="password" autocomplete="off" spellcheck="false" required style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
       <input type="hidden" name="response_type" value="${htmlEscape(request.responseType)}" />
       <input type="hidden" name="client_id" value="${htmlEscape(request.clientId)}" />
       <input type="hidden" name="redirect_uri" value="${htmlEscape(request.redirectUri)}" />
-      <input type="hidden" name="state" value="${htmlEscape(request.state)}" />
+      ${request.state ? `<input type="hidden" name="state" value="${htmlEscape(request.state)}" />` : ''}
       <input type="hidden" name="code_challenge" value="${htmlEscape(request.codeChallenge)}" />
       <input type="hidden" name="code_challenge_method" value="${htmlEscape(request.codeChallengeMethod)}" />
       <input type="hidden" name="resource" value="${htmlEscape(request.resource)}" />
@@ -87,7 +85,7 @@ function renderConsentForm(params: {
       <button type="submit">Authorize</button>
     </form>
   </body>
-</html>`, 200, formActionOrigin);
+</html>`, 200);
 }
 
 async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof fetch): Promise<void> {
@@ -108,7 +106,7 @@ export async function handleAuthorizeGet(request: Request, config: AppConfig): P
     exp: Math.floor(Date.now() / 1000) + 600,
     client_id: authorizationRequest.clientId,
     redirect_uri: authorizationRequest.redirectUri,
-    state: authorizationRequest.state,
+    ...(authorizationRequest.state ? { state: authorizationRequest.state } : {}),
   });
 
   return renderConsentForm({ request: authorizationRequest, csrfToken, formActionUrl });
@@ -156,7 +154,7 @@ export async function handleAuthorizePost(
         exp: Math.floor(Date.now() / 1000) + 600,
         client_id: authorizationRequest.clientId,
         redirect_uri: authorizationRequest.redirectUri,
-        state: authorizationRequest.state,
+        ...(authorizationRequest.state ? { state: authorizationRequest.state } : {}),
       });
       return renderConsentForm({
         request: authorizationRequest,
@@ -202,7 +200,9 @@ export async function handleAuthorizePost(
   const code = await signJwt(claims as unknown as Record<string, unknown>, config.oauthJwtSigningKey, 'JWT');
   const redirectUrl = new URL(authorizationRequest.redirectUri);
   redirectUrl.searchParams.set('code', code);
-  redirectUrl.searchParams.set('state', authorizationRequest.state);
+  if (authorizationRequest.state) {
+    redirectUrl.searchParams.set('state', authorizationRequest.state);
+  }
 
   return new Response(null, {
     status: 302,

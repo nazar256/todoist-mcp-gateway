@@ -5,7 +5,7 @@ interface CsrfPayload {
   exp: number;
   client_id: string;
   redirect_uri: string;
-  state: string;
+  state?: string;
 }
 
 const textEncoder = new TextEncoder();

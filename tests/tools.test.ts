@@ -82,6 +82,17 @@ describe('tools', () => {
     const fetchMock = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1' }]));
     const result = await callRegisteredTool(fetchMock, 'get_projects_list', {});
     expect(result.content[0].text).toContain('p1');
+    expect(result.structuredContent).toEqual({ items: [{ id: 'p1' }] });
+  });
+
+  it('get_projects_list tolerates undefined args from MCP clients', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1' }]));
+    const server = createTodoistMcpServer(new TodoistClient('secret', fetchMock as unknown as typeof fetch), { scope: 'todoist.read todoist.write' });
+    const tool = (server as any)._registeredTools.get_projects_list;
+    const result = await tool.handler(undefined, {});
+
+    expect(result.content[0].text).toContain('p1');
+    expect(result.structuredContent).toEqual({ items: [{ id: 'p1' }] });
   });
 
   it('create_projects', async () => {
@@ -96,7 +107,7 @@ describe('tools', () => {
 
     expect(result.content[0].text).toContain('Renamed');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.todoist.com/rest/v2/projects/p1',
+      'https://api.todoist.com/api/v1/projects/p1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'Renamed' }),
@@ -113,7 +124,7 @@ describe('tools', () => {
     expect(result.content[0].text).toContain('New Project');
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'https://api.todoist.com/rest/v2/projects/p1',
+      'https://api.todoist.com/api/v1/projects/p1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'New Project' }),
@@ -133,7 +144,7 @@ describe('tools', () => {
 
     expect(result.content[0].text).toContain('Renamed');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.todoist.com/rest/v2/sections/s1',
+      'https://api.todoist.com/api/v1/sections/s1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'Renamed' }),
@@ -150,7 +161,7 @@ describe('tools', () => {
     expect(result.content[0].text).toContain('New Name');
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'https://api.todoist.com/rest/v2/sections/s1',
+      'https://api.todoist.com/api/v1/sections/s1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'New Name' }),
@@ -182,7 +193,7 @@ describe('tools', () => {
 
     expect(result.content[0].text).toContain('Renamed');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.todoist.com/rest/v2/labels/l1',
+      'https://api.todoist.com/api/v1/labels/l1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'Renamed' }),
@@ -199,7 +210,7 @@ describe('tools', () => {
     expect(result.content[0].text).toContain('New Label');
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'https://api.todoist.com/rest/v2/labels/l1',
+      'https://api.todoist.com/api/v1/labels/l1',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'New Label' }),
@@ -211,6 +222,17 @@ describe('tools', () => {
     const fetchMock = vi.fn();
     const result = await callRegisteredTool(fetchMock, 'utils_get_colors', {});
     expect(result.content[0].text).toContain('berry_red');
+    expect(Array.isArray((result.structuredContent as { items: unknown[] }).items)).toBe(true);
+  });
+
+  it('utils_get_colors tolerates undefined args from MCP clients', async () => {
+    const fetchMock = vi.fn();
+    const server = createTodoistMcpServer(new TodoistClient('secret', fetchMock as unknown as typeof fetch), { scope: 'todoist.read todoist.write' });
+    const tool = (server as any)._registeredTools.utils_get_colors;
+    const result = await tool.handler(undefined, {});
+
+    expect(result.content[0].text).toContain('berry_red');
+    expect(Array.isArray((result.structuredContent as { items: unknown[] }).items)).toBe(true);
   });
 
   it('projects_list prompt', async () => {

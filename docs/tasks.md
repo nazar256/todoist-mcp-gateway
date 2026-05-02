@@ -28,7 +28,7 @@ Status legend:
 - [x] Implement `/authorize` GET request validation and consent form rendering.
 - [x] Implement `/authorize` POST validation, CSRF handling, and Todoist token validation.
 - [x] Make the `/authorize` consent form submit to an absolute same-origin URL and allow that origin in CSP so browsers do not block the Authorize button.
-- [ ] Verify end-to-end with a real deployed ChatGPT connector.
+- [x] Verify end-to-end with a real deployed ChatGPT connector.
 
 ## Phase 2: Token encryption and JWT artifacts
 
@@ -50,7 +50,7 @@ Status legend:
 - [x] Serve requests through `WebStandardStreamableHTTPServerTransport`.
 - [x] Add CORS support with OPTIONS preflight handling.
 - [x] Fix issuer trailing slash to comply with RFC 8414.
-- [~] Confirm behavior with a live remote MCP client after deployment.
+- [x] Confirm behavior with a live remote MCP client after deployment.
 
 ## Phase 4: Todoist API client
 
@@ -59,7 +59,7 @@ Status legend:
 - [x] Implement completed-task retrieval helper.
 - [x] Add safe path parameter validation.
 - [x] Add safe upstream error mapping.
-- [ ] Run live smoke tests against a real Todoist account after deployment.
+- [x] Run live smoke tests against a real Todoist account after deployment.
 
 ## Phase 5: Todoist tools and prompts
 
@@ -74,7 +74,7 @@ Status legend:
 - [x] Make `update_projects` rename semantics explicit by separating the name selector from payload `name`.
 - [x] Make `update_sections` and `update_labels` rename semantics explicit by separating name selectors from payload `name`.
 - [x] Return invalid tool input validation failures as `invalid_request` client errors instead of `internal_error`.
-- [~] Verify tool behavior against real Todoist API responses and connector UX.
+- [x] Verify tool behavior against real Todoist API responses and connector UX.
 
 ## Phase 6: Tests
 
@@ -98,13 +98,13 @@ Status legend:
 - [x] Auto-initialize Worker secrets on first deploy.
 - [x] Bootstrap a brand-new Worker before secret initialization so first CI deploy succeeds from scratch.
 - [x] Align production issuer/resource/audience URLs to the shared `xyofn8h7t.workers.dev` subdomain used in the Cloudflare account.
-- [ ] Deploy to a real Worker environment.
-- [ ] Capture deployed endpoint values and smoke-test evidence.
+- [x] Deploy to a real Worker environment.
+- [~] Capture deployed endpoint values and smoke-test evidence.
 
 ## Phase 8: Smoke testing and refinement
 
-- [ ] Run real ChatGPT custom MCP connector authorization.
-- [ ] Verify `tools/list` and representative tool calls against deployed Worker.
+- [x] Run real ChatGPT custom MCP connector authorization.
+- [~] Verify `tools/list` and representative tool calls against deployed Worker.
 - [ ] Compare deployed behavior against PRD, ADRs, and checklists.
 - [ ] Record refinement findings in `docs/implementation-log.md`.
-- [ ] Resolve any protocol/runtime gaps found during live testing.
+- [~] Resolve any protocol/runtime gaps found during live testing.

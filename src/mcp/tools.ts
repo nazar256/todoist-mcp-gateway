@@ -31,6 +31,7 @@ import type { McpServerAuthContext } from './server';
 
 type JsonMap = Record<string, unknown>;
 type RequiredScope = 'todoist.read' | 'todoist.write';
+const emptyObjectSchema = z.object({}).optional().transform((value) => value ?? {});
 
 function asItemError(index: number, error: unknown): BatchItemResult {
   if (error instanceof HttpError) {
@@ -101,6 +102,7 @@ function toLabelMutationSelector(value: { id?: string; label_name?: string }) {
 }
 
 function createToolHandler<Schema extends z.ZodTypeAny>(
+  toolName: string,
   schema: Schema,
   handler: (input: z.infer<Schema>) => Promise<unknown>,
   authContext: McpServerAuthContext,
@@ -119,7 +121,14 @@ function createToolHandler<Schema extends z.ZodTypeAny>(
         ? new HttpError(400, 'invalid_request', error.issues[0]?.message ?? 'Invalid tool input')
         : error instanceof HttpError
           ? error
-          : new HttpError(500, 'internal_error', 'Internal server error');
+          : (() => {
+              console.error('Unhandled MCP tool error', {
+                tool: toolName,
+                name: error instanceof Error ? error.name : typeof error,
+                message: error instanceof Error ? error.message : String(error),
+              });
+              return new HttpError(500, 'internal_error', 'Internal server error');
+            })();
       return createJsonContentResult(
         {
           ok: false,
@@ -302,7 +311,7 @@ export function registerTools(server: McpServer, todoistClient: TodoistClient, a
     config: Record<string, unknown>,
     schema: Schema,
     handler: (input: z.infer<Schema>) => Promise<unknown>,
-  ) => (server.registerTool as any)(name, config, createToolHandler(schema, handler, authContext, scopeForTool(name)));
+  ) => (server.registerTool as any)(name, config, createToolHandler(name, schema, handler, authContext, scopeForTool(name)));
 
   registerScopedTool(
     'get_tasks_list',
@@ -481,8 +490,9 @@ export function registerTools(server: McpServer, todoistClient: TodoistClient, a
     'get_projects_list',
     {
       description: 'Read Todoist projects.',
+      inputSchema: {},
     },
-    z.object({}), async () => todoistClient.get('/projects'),
+    emptyObjectSchema, async () => todoistClient.get('/projects'),
   );
 
   registerScopedTool(
@@ -640,8 +650,8 @@ export function registerTools(server: McpServer, todoistClient: TodoistClient, a
 
   registerScopedTool(
     'get_labels_list',
-    { description: 'Read personal Todoist labels.' },
-    z.object({}), async () => todoistClient.get('/labels'),
+    { description: 'Read personal Todoist labels.', inputSchema: {} },
+    emptyObjectSchema, async () => todoistClient.get('/labels'),
   );
 
   registerScopedTool(
@@ -689,8 +699,8 @@ export function registerTools(server: McpServer, todoistClient: TodoistClient, a
 
   registerScopedTool(
     'get_shared_labels',
-    { description: 'Read shared Todoist labels.' },
-    z.object({}), async () => todoistClient.get('/labels/shared'),
+    { description: 'Read shared Todoist labels.', inputSchema: {} },
+    emptyObjectSchema, async () => todoistClient.get('/labels/shared'),
   );
 
   registerScopedTool(
@@ -713,7 +723,7 @@ export function registerTools(server: McpServer, todoistClient: TodoistClient, a
 
   registerScopedTool(
     'utils_get_colors',
-    { description: 'Read the static list of Todoist-supported color ids, names, and hex values.' },
-    z.object({}), async () => TODOIST_COLORS,
+    { description: 'Read the static list of Todoist-supported color ids, names, and hex values.', inputSchema: {} },
+    emptyObjectSchema, async () => TODOIST_COLORS,
   );
 }

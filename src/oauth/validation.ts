@@ -4,11 +4,11 @@ import {
   HttpError,
   normalizeScope,
   validateOptionalResource,
+  validateOptionalState,
   validatePkceChallenge,
   validatePkceMethod,
   validateRedirectUri,
   validateResponseType,
-  validateState,
 } from '../security/validators';
 
 export interface PublicClientMetadata {
@@ -22,7 +22,7 @@ export interface OAuthAuthorizationRequest {
   responseType: 'code';
   clientId: string;
   redirectUri: string;
-  state: string;
+  state?: string;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
   resource: string;
@@ -74,7 +74,7 @@ export async function parseAuthorizationRequest(request: Request, config: AppCon
     responseType: validateResponseType(url.searchParams.get('response_type')),
     clientId: await validateClientIdentity(config, url.searchParams.get('client_id'), redirectUri),
     redirectUri,
-    state: validateState(url.searchParams.get('state')),
+    state: validateOptionalState(url.searchParams.get('state')),
     codeChallenge: validatePkceChallenge(url.searchParams.get('code_challenge')),
     codeChallengeMethod: validatePkceMethod(url.searchParams.get('code_challenge_method')),
     resource: validateOptionalResource(url.searchParams.get('resource') ?? undefined, config.mcpResource),
@@ -93,7 +93,7 @@ export async function parseAuthorizeForm(fields: URLSearchParams, config: AppCon
     responseType: validateResponseType(fields.get('response_type')),
     clientId: await validateClientIdentity(config, fields.get('client_id'), redirectUri),
     redirectUri,
-    state: validateState(fields.get('state')),
+    state: validateOptionalState(fields.get('state')),
     codeChallenge: validatePkceChallenge(fields.get('code_challenge')),
     codeChallengeMethod: validatePkceMethod(fields.get('code_challenge_method')),
     resource: validateOptionalResource(fields.get('resource') ?? undefined, config.mcpResource),

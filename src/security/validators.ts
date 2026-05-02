@@ -86,13 +86,14 @@ export function validateRedirectUri(
     throw new HttpError(400, 'invalid_redirect_uri', 'redirect_uri must be a valid URL');
   }
 
-  const hostAllowed = allowedHostPatterns.some((pattern) => matchesHostPattern(url.hostname, pattern));
+  const isLoopbackHost = isLoopbackHostname(url.hostname);
+  const hostAllowed = isLoopbackHost || allowedHostPatterns.some((pattern) => matchesHostPattern(url.hostname, pattern));
   if (!hostAllowed) {
     throw new HttpError(400, 'invalid_redirect_uri', 'redirect_uri host is not allowlisted');
   }
 
-  const isLocalHttp = url.protocol === 'http:' && isLoopbackHostname(url.hostname);
-  if (url.protocol !== 'https:' && !(isLocalDevelopment && isLocalHttp)) {
+  const isLocalHttp = url.protocol === 'http:' && isLoopbackHost;
+  if (url.protocol !== 'https:' && !isLocalHttp && !(isLocalDevelopment && isLocalHttp)) {
     throw new HttpError(400, 'invalid_redirect_uri', 'redirect_uri must use HTTPS');
   }
 
@@ -136,11 +137,13 @@ export function validateOptionalResource(resource: string | undefined, expected:
   return resource;
 }
 
-export function validateState(state: string | null | undefined): string {
-  if (!state || state.trim().length === 0) {
-    throw new HttpError(400, 'invalid_request', 'state is required');
+export function validateOptionalState(state: string | null | undefined): string | undefined {
+  if (!state) {
+    return undefined;
   }
-  return state;
+
+  const trimmed = state.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function validatePkceChallenge(challenge: string | null | undefined): string {

@@ -8,7 +8,7 @@ describe('todoist client', () => {
     const client = new TodoistClient('secret', fetchMock as unknown as typeof fetch);
     await client.get('/tasks');
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toBe('https://api.todoist.com/rest/v2/tasks');
+    expect(url).toBe('https://api.todoist.com/api/v1/tasks');
     expect((init.headers as Headers).get('authorization')).toBe('Bearer secret');
     expect((init.headers as Headers).get('x-request-id')).toBeTruthy();
   });
@@ -17,7 +17,7 @@ describe('todoist client', () => {
     const fetchMock = vi.fn().mockResolvedValue(createJsonResponse({ ok: true }));
     const client = new TodoistClient('secret', fetchMock as unknown as typeof fetch);
     await client.sync([{ type: 'item_move', uuid: 'u', args: {} }]);
-    expect(fetchMock.mock.calls[0]![0]).toBe('https://api.todoist.com/sync/v9/sync');
+    expect(fetchMock.mock.calls[0]![0]).toBe('https://api.todoist.com/api/v1/sync');
   });
 
   it('handles 204 No Content', async () => {
@@ -34,5 +34,34 @@ describe('todoist client', () => {
 
   it('rejects unsafe path params', () => {
     expect(() => TodoistClient.encodePathParam('../secret', 'id')).toThrow(/unsafe/);
+  });
+
+  it('wraps fetch implementation to avoid unbound invocation issues', async () => {
+    const calls: Array<{ self: unknown; url: RequestInfo | URL; init?: RequestInit }> = [];
+    function fetchLike(this: unknown, input: RequestInfo | URL, init?: RequestInit) {
+      calls.push({ self: this, url: input, init });
+      return Promise.resolve(createJsonResponse([{ id: '1' }]));
+    }
+
+    const client = new TodoistClient('secret', fetchLike as unknown as typeof fetch);
+    await client.get('/tasks');
+
+    expect(calls).toHaveLength(1);
+    expect(String(calls[0]!.url)).toBe('https://api.todoist.com/api/v1/tasks');
+  });
+
+  it('unwraps paginated results arrays from Todoist v1 list endpoints', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createJsonResponse({ results: [{ id: '1' }], next_cursor: null }));
+    const client = new TodoistClient('secret', fetchMock as unknown as typeof fetch);
+
+    await expect(client.get('/projects')).resolves.toEqual([{ id: '1' }]);
+  });
+
+  it('maps completed tasks endpoint response items to an array', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createJsonResponse({ items: [{ id: 'c1' }] }));
+    const client = new TodoistClient('secret', fetchMock as unknown as typeof fetch);
+
+    await expect(client.getCompletedTasks({ since: '2026-05-01T00:00:00Z', until: '2026-05-02T00:00:00Z' })).resolves.toEqual([{ id: 'c1' }]);
+    expect(fetchMock.mock.calls[0]![0]).toBe('https://api.todoist.com/api/v1/tasks/completed/by_completion_date?since=2026-05-01T00%3A00%3A00Z&until=2026-05-02T00%3A00%3A00Z');
   });
 });

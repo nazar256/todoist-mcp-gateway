@@ -26,11 +26,11 @@ function extractFormValue(html: string, name: string): string {
 }
 
 describe('oauth authorize', () => {
-  it('rejects missing state', async () => {
+  it('accepts missing state', async () => {
     const url = new URL(await authorizeUrl());
     url.searchParams.delete('state');
     const response = await dispatch(new Request(url), createEnv());
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
   });
 
   it('rejects plain PKCE', async () => {
@@ -72,14 +72,14 @@ describe('oauth authorize', () => {
 
   it('sets security headers', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
-    expect(response.headers.get('content-security-policy')).toContain("form-action 'self' https://gateway.test");
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+    expect(response.headers.get('content-security-policy')).not.toContain('form-action');
     expect(response.headers.get('x-frame-options')).toBe('DENY');
   });
 
-  it('renders an absolute authorize form action', async () => {
+  it('renders a relative authorize form action', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
-    await expect(response.text()).resolves.toContain('form method="post" action="https://gateway.test/authorize"');
+    await expect(response.text()).resolves.toContain('form method="post" action="/authorize"');
   });
 
   it('rejects invalid CSRF', async () => {
@@ -187,5 +187,35 @@ describe('oauth authorize', () => {
     const claims = await verifyJwt<any>(code!, config.oauthJwtSigningKey, config.issuer, config.issuer, 'todoist_mcp_auth_code');
     expect(JSON.stringify(claims)).not.toContain('secret-todoist-token');
     expect(claims.enc_config.ct).toBeTruthy();
+  });
+
+  it('omits state hidden field and redirect parameter when state is not provided', async () => {
+    const upstreamFetch = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1', name: 'Inbox' }]));
+    const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
+    const url = new URL(await authorizeUrl());
+    url.searchParams.delete('state');
+
+    const getResponse = await dispatch(new Request(url), env);
+    const html = await getResponse.text();
+
+    expect(getResponse.status).toBe(200);
+    expect(html).not.toContain('name="state"');
+
+    const form = new URLSearchParams();
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token'] as const) {
+      form.set(name, extractFormValue(html, name));
+    }
+    form.set('todoist_api_token', 'secret-todoist-token');
+
+    const response = await dispatch(new Request('https://gateway.test/authorize', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: form,
+    }), env);
+
+    expect(response.status).toBe(302);
+    const location = response.headers.get('location') ?? '';
+    expect(location).toContain('code=');
+    expect(location).not.toContain('state=');
   });
 });
