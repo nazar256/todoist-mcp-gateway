@@ -73,6 +73,7 @@ describe('oauth authorize', () => {
   it('sets security headers', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+    expect(response.headers.get('content-security-policy')).toMatch(/script-src 'nonce-[^']+'/);
     expect(response.headers.get('content-security-policy')).toContain("form-action 'self'");
     expect(response.headers.get('x-frame-options')).toBe('DENY');
   });
@@ -80,6 +81,17 @@ describe('oauth authorize', () => {
   it('renders a relative authorize form action', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
     await expect(response.text()).resolves.toContain('form method="post" action="/authorize"');
+  });
+
+  it('uses CSP nonce for authorize inline script', async () => {
+    const response = await dispatch(new Request(await authorizeUrl()), createEnv());
+    const html = await response.text();
+    const csp = response.headers.get('content-security-policy') ?? '';
+    const match = /script-src 'nonce-([^']+)'/.exec(csp);
+    expect(match).toBeTruthy();
+    const nonce = match?.[1] ?? '';
+    expect(nonce.length).toBeGreaterThan(10);
+    expect(html).toContain(`<script nonce="${nonce}">`);
   });
 
   it('rejects invalid CSRF', async () => {

@@ -87,13 +87,24 @@ function htmlEscape(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function htmlResponse(body: string, status = 200): Response {
+function createCspNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function htmlResponse(body: string, status = 200, options?: { scriptNonce?: string }): Response {
+  const scriptNonce = options?.scriptNonce;
+  const csp = scriptNonce
+    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${scriptNonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`
+    : "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+
   return new Response(body, {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'no-store',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      'content-security-policy': csp,
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'x-frame-options': 'DENY',
@@ -108,6 +119,7 @@ function renderConsentForm(params: {
   error?: string;
 }): Response {
   const { request, csrfToken, formActionUrl, error } = params;
+  const scriptNonce = createCspNonce();
   return htmlResponse(`<!doctype html>
 <html lang="en">
   <head>
@@ -146,7 +158,7 @@ function renderConsentForm(params: {
       <input type="hidden" name="csrf_token" value="${htmlEscape(csrfToken)}" />
       <button type="submit">Authorize</button>
     </form>
-    <script>
+    <script nonce="${scriptNonce}">
       const preset = document.getElementById('token_expiration_preset');
       const customDays = document.getElementById('token_expiration_days');
       if (preset instanceof HTMLSelectElement && customDays instanceof HTMLInputElement) {
@@ -163,7 +175,7 @@ function renderConsentForm(params: {
       }
     </script>
   </body>
-</html>`, 200);
+</html>`, 200, { scriptNonce });
 }
 
 async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof fetch): Promise<void> {
