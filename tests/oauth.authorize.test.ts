@@ -94,6 +94,14 @@ describe('oauth authorize', () => {
     expect(html).toContain(`<script nonce="${nonce}">`);
   });
 
+  it('uses base64 CSP nonce characters', async () => {
+    const response = await dispatch(new Request(await authorizeUrl()), createEnv());
+    const csp = response.headers.get('content-security-policy') ?? '';
+    const match = /script-src 'nonce-([^']+)'/.exec(csp);
+    const nonce = match?.[1] ?? '';
+    expect(nonce).toMatch(/^[A-Za-z0-9+/=]+$/);
+  });
+
   it('rejects invalid CSRF', async () => {
     const getResponse = await dispatch(new Request(await authorizeUrl()), createEnv());
     const html = await getResponse.text();

@@ -88,9 +88,10 @@ function htmlEscape(value: string): string {
 }
 
 function createCspNonce(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  // CSP nonces are base64 values. Use standard base64 (including + and /) and keep padding.
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
   const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return btoa(binary);
 }
 
 function htmlResponse(body: string, status = 200, options?: { scriptNonce?: string }): Response {
