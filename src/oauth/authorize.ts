@@ -87,18 +87,8 @@ function htmlEscape(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function createCspNonce(): string {
-  // CSP nonces are base64 values. Use standard base64 (including + and /) and keep padding.
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
-  return btoa(binary);
-}
-
-function htmlResponse(body: string, status = 200, options?: { scriptNonce?: string }): Response {
-  const scriptNonce = options?.scriptNonce;
-  const csp = scriptNonce
-    ? `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${scriptNonce}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`
-    : "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+function htmlResponse(body: string, status = 200): Response {
+  const csp = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
 
   return new Response(body, {
     status,
@@ -120,7 +110,6 @@ function renderConsentForm(params: {
   error?: string;
 }): Response {
   const { request, csrfToken, formActionUrl, error } = params;
-  const scriptNonce = createCspNonce();
   return htmlResponse(`<!doctype html>
 <html lang="en">
   <head>
@@ -146,7 +135,7 @@ function renderConsentForm(params: {
       </select>
 
       <label for="token_expiration_days">Custom expiration (days)</label><br />
-      <input id="token_expiration_days" name="token_expiration_days" type="number" min="1" max="365" disabled style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
+      <input id="token_expiration_days" name="token_expiration_days" type="number" min="1" max="365" placeholder="Used only when preset=custom" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem;" />
 
       <input type="hidden" name="response_type" value="${htmlEscape(request.responseType)}" />
       <input type="hidden" name="client_id" value="${htmlEscape(request.clientId)}" />
@@ -159,24 +148,8 @@ function renderConsentForm(params: {
       <input type="hidden" name="csrf_token" value="${htmlEscape(csrfToken)}" />
       <button type="submit">Authorize</button>
     </form>
-    <script nonce="${scriptNonce}">
-      const preset = document.getElementById('token_expiration_preset');
-      const customDays = document.getElementById('token_expiration_days');
-      if (preset instanceof HTMLSelectElement && customDays instanceof HTMLInputElement) {
-        const syncCustomState = () => {
-          const isCustom = preset.value === 'custom';
-          customDays.disabled = !isCustom;
-          customDays.required = isCustom;
-          if (!isCustom) {
-            customDays.value = '';
-          }
-        };
-        preset.addEventListener('change', syncCustomState);
-        syncCustomState();
-      }
-    </script>
   </body>
-</html>`, 200, { scriptNonce });
+</html>`, 200);
 }
 
 async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof fetch): Promise<void> {
