@@ -8,7 +8,6 @@ import {
   validateNonEmptyInput,
   validateTodoistApiToken,
 } from '../security/validators';
-import { TodoistClient } from '../todoist/client';
 import type { TodoistConfig } from '../todoist/types';
 import { parseAuthorizationRequest, parseAuthorizeForm } from './validation';
 
@@ -88,7 +87,7 @@ function htmlEscape(value: string): string {
 }
 
 function htmlResponse(body: string, status = 200): Response {
-  const csp = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+  const csp = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'";
 
   return new Response(body, {
     status,
@@ -106,10 +105,9 @@ function htmlResponse(body: string, status = 200): Response {
 function renderConsentForm(params: {
   request: Awaited<ReturnType<typeof parseAuthorizationRequest>>;
   csrfToken: string;
-  formActionUrl: string;
   error?: string;
 }): Response {
-  const { request, csrfToken, formActionUrl, error } = params;
+  const { request, csrfToken, error } = params;
   return htmlResponse(`<!doctype html>
 <html lang="en">
   <head>
@@ -152,17 +150,6 @@ function renderConsentForm(params: {
 </html>`, 200);
 }
 
-async function validateTodoistTokenWithUpstream(token: string, fetchImpl: typeof fetch): Promise<void> {
-  const client = new TodoistClient(token, fetchImpl);
-  try {
-    await client.get('/projects');
-  } catch (error) {
-    if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
-      throw new HttpError(400, 'access_denied', 'Todoist API token is invalid');
-    }
-  }
-}
-
 export async function handleAuthorizeGet(request: Request, config: AppConfig): Promise<Response> {
   const authorizationRequest = await parseAuthorizationRequest(request, config);
   const formActionUrl = new URL('/authorize', request.url).toString();
@@ -173,13 +160,12 @@ export async function handleAuthorizeGet(request: Request, config: AppConfig): P
     ...(authorizationRequest.state ? { state: authorizationRequest.state } : {}),
   });
 
-  return renderConsentForm({ request: authorizationRequest, csrfToken, formActionUrl });
+  return renderConsentForm({ request: authorizationRequest, csrfToken });
 }
 
 export async function handleAuthorizePost(
   request: Request,
   config: AppConfig,
-  fetchImpl: typeof fetch,
 ): Promise<Response> {
   const fields = new URLSearchParams();
   const contentType = request.headers.get('content-type') ?? '';
@@ -217,26 +203,6 @@ export async function handleAuthorizePost(
   }
 
   const todoistApiToken = validateTodoistApiToken(fields.get('todoist_api_token'));
-
-  try {
-    await validateTodoistTokenWithUpstream(todoistApiToken, fetchImpl);
-  } catch (error) {
-    if (error instanceof HttpError && error.code === 'access_denied') {
-      const freshCsrfToken = await createCsrfToken(config.csrfSigningKey, {
-        exp: Math.floor(Date.now() / 1000) + 600,
-        client_id: authorizationRequest.clientId,
-        redirect_uri: authorizationRequest.redirectUri,
-        ...(authorizationRequest.state ? { state: authorizationRequest.state } : {}),
-      });
-      return renderConsentForm({
-        request: authorizationRequest,
-        csrfToken: freshCsrfToken,
-        formActionUrl: new URL('/authorize', request.url).toString(),
-        error: 'The Todoist API token could not be validated. Please check it and try again.',
-      });
-    }
-    throw error;
-  }
 
   const todoistConfig: TodoistConfig = {
     v: 1,

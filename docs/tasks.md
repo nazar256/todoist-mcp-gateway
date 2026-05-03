@@ -26,8 +26,8 @@ Status legend:
 - [x] Implement dynamic client registration with redirect allowlist validation.
 - [x] Add stateless registered-client resolution for dynamic client registration compatibility.
 - [x] Implement `/authorize` GET request validation and consent form rendering.
-- [x] Implement `/authorize` POST validation, CSRF handling, and Todoist token validation.
-- [x] Make the `/authorize` consent form submit to an absolute same-origin URL and allow that origin in CSP so browsers do not block the Authorize button.
+- [x] Implement `/authorize` POST validation, CSRF handling, and encrypted Todoist token capture.
+- [x] Keep the `/authorize` consent form browser-compatible by using a relative same-origin form action and avoiding a `form-action` CSP directive that blocks valid submits in Chrome/connector contexts.
 - [x] Verify end-to-end with a real deployed ChatGPT connector.
 
 ## Phase 2: Token encryption and JWT artifacts
@@ -80,7 +80,7 @@ Status legend:
 
 - [x] Add config tests.
 - [x] Add OAuth metadata/registration/authorize/token tests.
-- [x] Soften `/authorize` Todoist token validation so only explicit upstream auth failures block consent.
+- [x] Remove authorize-time Todoist upstream token validation so valid tokens are not falsely rejected before OAuth completion.
 - [x] Add crypto/redaction tests.
 - [x] Add MCP auth tests.
 - [x] Add Todoist client tests.

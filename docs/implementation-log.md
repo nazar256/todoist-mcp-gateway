@@ -22,8 +22,9 @@
 ## 2026-05-02
 
 ### Completed
+- Removed authorize-time Todoist upstream token validation after real-user testing showed valid developer tokens could still be falsely rejected at the consent page. The authorize flow now mirrors the known-good Shortcut gateway pattern: accept the user token, encrypt it into the auth artifact, and let real upstream/tool calls surface token problems later.
 - Verified that ChatGPT connector discovery should use the deployed `/mcp` resource URL, while OAuth endpoints are discovered from the Worker root issuer.
-- Fixed ChatGPT connector OAuth submit compatibility by removing the restrictive authorize-page `form-action` CSP and using a relative `/authorize` form action.
+- Fixed ChatGPT connector OAuth submit compatibility by using a relative `/authorize` form action and avoiding a restrictive authorize-page `form-action` CSP directive.
 - Fixed native/CLI OAuth compatibility by allowing loopback redirect URIs and treating OAuth `state` as optional when omitted by the client.
 - Reproduced real MCP behavior with `mcpc` against local Worker dev instead of relying only on ChatGPT browser testing.
 - Fixed MCP tool result shaping so array results are emitted as `structuredContent: { items: [...] }` instead of invalid top-level arrays.
@@ -32,6 +33,7 @@
 - Checked the latest official Todoist SDK and kept the repo on a small custom Worker-safe client rather than adding a Node-oriented runtime dependency.
 - Migrated the Todoist client to `/api/v1`, kept sync on `/api/v1/sync`, and normalized Todoist v1 paginated list responses (`{ results, next_cursor }`) and completed-task responses (`{ items }`) into stable MCP-facing arrays.
 - Added regression coverage for the runtime/compatibility issues above and revalidated locally with real `mcpc` OAuth + MCP tool calls.
+- Reproduced the local authorize-page submit failure in Chrome devtools and confirmed the browser blocked `POST /authorize` before network completion when `form-action 'self'` was present; removed that directive and kept the page script-free.
 
 ### Evidence
 - Local `mcpc` OAuth + MCP succeeded after fixes.

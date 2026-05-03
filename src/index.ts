@@ -176,7 +176,7 @@ async function routeRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === 'POST' && url.pathname === '/authorize') {
-    return handleAuthorizePost(request, config, env.fetch ?? fetch);
+    return handleAuthorizePost(request, config);
   }
 
   if (request.method === 'POST' && url.pathname === '/token') {

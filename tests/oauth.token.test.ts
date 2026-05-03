@@ -29,7 +29,7 @@ async function issueAuthorizationCode(envOverrides = {}) {
     }),
     todoist_api_token: 'secret-token',
   });
-  const response = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, env.fetch!);
+  const response = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config);
   const code = new URL(response.headers.get('location')!).searchParams.get('code')!;
   return { env, config, code, codeVerifier };
 }
@@ -111,7 +111,7 @@ describe('oauth token', () => {
       }),
       todoist_api_token: 'secret-token',
     });
-    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, env.fetch!);
+    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config);
     const code = new URL(authorize.headers.get('location')!).searchParams.get('code')!;
 
     const response = await handleToken(new Request('https://gateway.test/token', {
@@ -157,7 +157,7 @@ describe('oauth token', () => {
       todoist_api_token: 'secret-token',
     });
 
-    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, env.fetch!);
+    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config);
     const location = new URL(authorize.headers.get('location')!);
     const code = location.searchParams.get('code')!;
 
@@ -198,8 +198,7 @@ describe('oauth token', () => {
       todoist_api_token: 'secret-token',
     });
 
-    const upstreamFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: 'p1' }]))) as unknown as typeof fetch;
-    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, upstreamFetch);
+    const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config);
     const code = new URL(authorize.headers.get('location')!).searchParams.get('code')!;
 
     const token = await handleToken(new Request('https://gateway.test/token', {

@@ -32,7 +32,7 @@ async function accessToken(scope = 'todoist.read todoist.write') {
     csrf_token: await createCsrfToken(config.csrfSigningKey, { exp: Math.floor(Date.now() / 1000) + 60, client_id: clientId, redirect_uri: redirectUri, state: 'state-123' }),
     todoist_api_token: 'secret-token',
   });
-  const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config, env.fetch!);
+  const authorize = await handleAuthorizePost(new Request('https://gateway.test/authorize', { method: 'POST', body: form }), config);
   const code = new URL(authorize.headers.get('location')!).searchParams.get('code')!;
   const tokenResponse = await handleToken(new Request('https://gateway.test/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code, client_id: clientId, redirect_uri: redirectUri, code_verifier: codeVerifier, resource: config.mcpResource }) }), config);
   const tokenJson = await tokenResponse.json() as any;

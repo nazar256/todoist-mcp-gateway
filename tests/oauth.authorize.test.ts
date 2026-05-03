@@ -73,7 +73,7 @@ describe('oauth authorize', () => {
   it('sets security headers', async () => {
     const response = await dispatch(new Request(await authorizeUrl()), createEnv());
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
-    expect(response.headers.get('content-security-policy')).toContain("form-action 'self'");
+    expect(response.headers.get('content-security-policy')).not.toContain('form-action');
     expect(response.headers.get('x-frame-options')).toBe('DENY');
   });
 
@@ -132,7 +132,7 @@ describe('oauth authorize', () => {
     expect(response.status).toBe(400);
   });
 
-  it('re-renders the form when Todoist explicitly rejects the token', async () => {
+  it('does not validate Todoist token against upstream during authorize', async () => {
     const upstreamFetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
     const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
     const getResponse = await dispatch(new Request(await authorizeUrl()), env);
@@ -149,33 +149,11 @@ describe('oauth authorize', () => {
       body: form,
     }), env);
 
-    expect(upstreamFetch).toHaveBeenCalledOnce();
-    expect(response.status).toBe(200);
-    await expect(response.text()).resolves.toContain('The Todoist API token could not be validated. Please check it and try again.');
-  });
-
-  it('allows authorization to continue when Todoist validation fails for a non-auth reason', async () => {
-    const upstreamFetch = vi.fn().mockResolvedValue(new Response('Temporary upstream failure', { status: 500 }));
-    const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
-    const getResponse = await dispatch(new Request(await authorizeUrl()), env);
-    const html = await getResponse.text();
-    const form = new URLSearchParams();
-    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
-      form.set(name, extractFormValue(html, name));
-    }
-    form.set('todoist_api_token', 'secret-todoist-token');
-
-    const response = await dispatch(new Request('https://gateway.test/authorize', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: form,
-    }), env);
-
-    expect(upstreamFetch).toHaveBeenCalledOnce();
+    expect(upstreamFetch).not.toHaveBeenCalled();
     expect(response.status).toBe(302);
   });
 
-  it('validates Todoist token via mocked Todoist API, encrypts config, returns redirect, and does not expose token plaintext', async () => {
+  it('encrypts config, returns redirect, and does not expose token plaintext', async () => {
     const upstreamFetch = vi.fn().mockResolvedValue(createJsonResponse([{ id: 'p1', name: 'Inbox' }]));
     const env = createEnv({}, upstreamFetch as unknown as typeof fetch);
     const getResponse = await dispatch(new Request(await authorizeUrl()), env);
@@ -187,7 +165,7 @@ describe('oauth authorize', () => {
     form.set('todoist_api_token', 'secret-todoist-token');
 
     const response = await dispatch(new Request('https://gateway.test/authorize', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form }), env);
-    expect(upstreamFetch).toHaveBeenCalledOnce();
+    expect(upstreamFetch).not.toHaveBeenCalled();
     expect(response.status).toBe(302);
     const location = response.headers.get('location') ?? '';
     expect(location).toContain('code=');
