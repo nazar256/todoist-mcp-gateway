@@ -5,4 +5,26 @@ dist/
 .DS_Store
 .dev.vars
 .env
+.env.*
+.npmrc
+.yarnrc
 .tmp/
+
+# Local secrets, credentials, and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.csr
+*.jks
+*.keystore
+*.asc
+*.gpg
+
+# Local editor/OS noise
+.idea/
+.vscode/
+*.swp
+*.swo

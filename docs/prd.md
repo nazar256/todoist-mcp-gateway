@@ -44,7 +44,7 @@ The official or hosted Todoist MCP options are not sufficient for this repositor
 3. ChatGPT dynamically registers its redirect URI.
 4. User is redirected to `/authorize`.
 5. User pastes their Todoist developer token from Todoist Settings → Integrations.
-6. Worker validates the Todoist token against Todoist.
+6. Worker captures the Todoist token, performs basic local shape validation (trimmed, non-empty, no whitespace/control characters), and encrypts it into the OAuth artifact; real Todoist API calls later surface upstream token failures safely.
 7. Worker encrypts the Todoist config, embeds the encrypted envelope in a signed auth code artifact, and redirects back with `code` and `state`.
 8. ChatGPT exchanges the code for a bearer token.
 9. ChatGPT calls `/mcp` with the bearer token.

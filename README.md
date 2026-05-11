@@ -39,7 +39,7 @@ npm run dev
 3. Client can resolve the registered public client at `GET /register/:client_id`
 4. User is redirected to `GET /authorize` and sees a consent form
 5. User pastes their Todoist API token (from **Todoist → Settings → Integrations → Developer**)
-6. Gateway does a lightweight Todoist token check, encrypts it with AES-GCM, and issues a signed JWT auth code
+6. Gateway trims the submitted token, rejects whitespace/control-character corruption, encrypts it with AES-GCM, and issues a signed JWT auth code
 7. Client exchanges the auth code at `POST /token`
 8. Client calls `/mcp` with the bearer token; the Worker verifies the JWT, decrypts the Todoist config, and serves MCP requests
 
@@ -83,7 +83,7 @@ OAUTH_ISSUER = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev"
 MCP_RESOURCE = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp"
 MCP_AUDIENCE = "https://todoist-mcp-gateway.xyofn8h7t.workers.dev/mcp"
 OAUTH_REDIRECT_HTTPS_HOSTS = "chatgpt.com,*.chatgpt.com,github.com,*.github.com,claude.ai,*.claude.ai,anthropic.com,*.anthropic.com,localhost"
-ACCESS_TOKEN_TTL_SECONDS = "43200"
+ACCESS_TOKEN_TTL_SECONDS = "31536000"
 AUTH_CODE_TTL_SECONDS = "120"
 REFRESH_TOKEN_TTL_SECONDS = "2592000"
 ENABLE_REFRESH_TOKENS = "true"
@@ -120,6 +120,8 @@ Required GitHub repository secrets:
 - `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID
 
 Worker secrets are auto-generated on first deploy. Because Cloudflare cannot list secrets for a Worker that does not exist yet, the workflow first performs a bootstrap deploy on a brand-new environment, then creates the missing secrets, then deploys again.
+
+The deploy job assumes the standard `ubuntu-latest` runner tools used by GitHub Actions, including Node.js 20 from `actions/setup-node`, `jq`, `openssl`, and `npx wrangler`. The repository is intentionally marked `private` in `package.json` because the publication target is GitHub + Cloudflare Workers, not npm.
 
 ### Manual deploy
 

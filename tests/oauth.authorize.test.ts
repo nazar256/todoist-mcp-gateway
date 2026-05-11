@@ -132,6 +132,24 @@ describe('oauth authorize', () => {
     expect(response.status).toBe(400);
   });
 
+  it('rejects Todoist token with embedded whitespace', async () => {
+    const getResponse = await dispatch(new Request(await authorizeUrl()), createEnv());
+    const html = await getResponse.text();
+    const form = new URLSearchParams();
+    for (const name of ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'resource', 'scope', 'csrf_token', 'token_expiration_preset'] as const) {
+      form.set(name, extractFormValue(html, name));
+    }
+    form.set('todoist_api_token', 'secret todoist token');
+
+    const response = await dispatch(new Request('https://gateway.test/authorize', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: form,
+    }), createEnv({ fetch: vi.fn() as unknown as typeof fetch }));
+
+    expect(response.status).toBe(400);
+  });
+
   it('does not validate Todoist token against upstream during authorize', async () => {
     const upstreamFetch = vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
     const env = createEnv({}, upstreamFetch as unknown as typeof fetch);

@@ -189,7 +189,11 @@ export function validateNonEmptyInput(value: string | null | undefined, field: s
 }
 
 export function validateTodoistApiToken(value: string | null | undefined): string {
-  return validateNonEmptyInput(value, 'todoist_api_token', 1024);
+  const token = validateNonEmptyInput(value, 'todoist_api_token', 1024);
+  if (/[\s\x00-\x1F\x7F]/.test(token)) {
+    throw new HttpError(400, 'invalid_request', 'todoist_api_token must not contain whitespace or control characters');
+  }
+  return token;
 }
 
 export function validateSafePathSegment(value: string, fieldName: string): string {

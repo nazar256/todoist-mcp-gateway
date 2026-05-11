@@ -27,7 +27,7 @@ The Worker does not spawn a stdio server. Instead, it ports the Todoist API sema
 2. Client registers redirect URI at `/register`.
 3. `/authorize` GET validates `response_type`, `client_id`, `redirect_uri`, `state`, `code_challenge`, `code_challenge_method`, optional `resource`, and optional `scope`.
 4. Worker renders consent form with visible Todoist token field and signed CSRF token.
-5. `/authorize` POST validates CSRF and OAuth parameters, validates the Todoist token against `GET /rest/v2/projects`, encrypts the Todoist config, and issues a signed auth code artifact.
+5. `/authorize` POST validates CSRF and OAuth parameters, trims the Todoist token, rejects whitespace/control-character corruption, encrypts the Todoist config, and issues a signed auth code artifact. It intentionally does not perform an authorize-time upstream Todoist call because real-user testing showed valid developer tokens could be falsely rejected before OAuth completion.
 6. `/token` verifies the auth code + PKCE verifier, decrypts the Todoist config, re-encrypts it for access/refresh token purpose binding, and returns bearer tokens.
 
 ## MCP Flow
@@ -44,8 +44,8 @@ The current implementation uses JSON responses for request/response compatibilit
 
 ## Todoist Integration
 
-- REST base: `https://api.todoist.com/rest/v2`
-- Sync base: `https://api.todoist.com/sync/v9`
+- REST base: `https://api.todoist.com/api/v1`
+- Sync base: `https://api.todoist.com/api/v1`
 - Native `fetch` only.
 - `Authorization: Bearer <todoist token>` plus `X-Request-Id` on outbound calls.
 - Case-insensitive substring lookup for name-based task/project/section/label matching.
@@ -80,6 +80,7 @@ The current implementation uses JSON responses for request/response compatibilit
 - Required GitHub repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 - Keep non-secret values in `wrangler.toml`.
 - Use HTTPS issuer/resource values in production.
+- GitHub Actions uses Node.js 20 plus runner-provided `jq` and `openssl` for first-run secret bootstrap.
 - Manual deploy also available via `npm run deploy`.
 - Perform manual smoke tests after deployment, especially OAuth + ChatGPT connector flow.
 

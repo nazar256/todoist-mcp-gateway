@@ -81,6 +81,7 @@ Status legend:
 - [x] Add config tests.
 - [x] Add OAuth metadata/registration/authorize/token tests.
 - [x] Remove authorize-time Todoist upstream token validation so valid tokens are not falsely rejected before OAuth completion.
+- [x] Tighten authorize-time Todoist token shape validation to reject empty or whitespace-corrupted input locally.
 - [x] Add crypto/redaction tests.
 - [x] Add MCP auth tests.
 - [x] Add Todoist client tests.
@@ -98,6 +99,7 @@ Status legend:
 - [x] Auto-initialize Worker secrets on first deploy.
 - [x] Bootstrap a brand-new Worker before secret initialization so first CI deploy succeeds from scratch.
 - [x] Align production issuer/resource/audience URLs to the shared `xyofn8h7t.workers.dev` subdomain used in the Cloudflare account.
+- [x] Re-audit publication readiness: expand ignored secret/artifact patterns, refresh dependency lockfile advisories, and fix doc/config drift.
 - [x] Deploy to a real Worker environment.
 - [~] Capture deployed endpoint values and smoke-test evidence.
 

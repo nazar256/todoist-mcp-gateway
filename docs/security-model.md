@@ -7,7 +7,7 @@
 2. **MCP client (ChatGPT custom connector or similar)**
    - Drives OAuth and later calls `/mcp` with bearer token.
 3. **Cloudflare Worker**
-   - Verifies OAuth requests, validates Todoist token, signs JWTs, encrypts/decrypts Todoist config, and proxies validated Todoist operations.
+   - Verifies OAuth requests, performs basic local Todoist token validation, signs JWTs, encrypts/decrypts Todoist config, and proxies validated Todoist operations.
 4. **Todoist API**
    - Source of truth for projects/tasks/etc and validator for the user-provided developer token.
 
@@ -34,7 +34,7 @@ These live in Wrangler/Cloudflare secret storage.
 
 This token is:
 
-- validated against Todoist;
+- trimmed and validated during consent to reject empty, whitespace-corrupted, or control-character input;
 - encrypted before embedding in signed artifacts;
 - never persisted server-side;
 - never intended to appear in logs or plaintext JWT claims.

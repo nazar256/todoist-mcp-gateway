@@ -68,7 +68,7 @@
 ## 2026-04-30 (production polish pass)
 
 ### Completed
-- Pinned all dependency versions in `package.json` to exact installed versions instead of `latest`.
+- Replaced `latest` dependency specifiers in `package.json` with bounded semver ranges and committed the resolved versions in `package-lock.json` for reproducible `npm ci` installs.
 - Fixed RFC 8414 compliance: issuer identifier no longer includes a trailing slash from `URL.toString()`.
 - Added full CORS support: `OPTIONS` preflight returns 204, all JSON responses include CORS headers, MCP transport responses get CORS headers injected.
 - Added `LICENSE` (MIT).
@@ -80,6 +80,7 @@
 - Added GitHub Actions CI/CD pipeline: test + typecheck gate before deploy, auto-initialize Worker secrets on first deploy.
 - Fixed first-run CI deploy bootstrapping: when the Worker does not exist yet, the workflow now performs an initial deploy before listing/creating Worker secrets, then runs the final deploy.
 - Aligned `wrangler.toml`, tests, and operator docs to the shared Cloudflare Workers subdomain `xyofn8h7t.workers.dev` already used by sibling gateway deployments.
+- Re-audited publish readiness: expanded ignore rules for common secret/certificate artifacts, synchronized README TTL with `wrangler.toml`, updated Todoist API docs to `/api/v1`, tightened local Todoist token shape validation to reject whitespace-corrupted input, aligned docs with the no-authorize-time-upstream-validation behavior, documented CI runner assumptions, and refreshed the lockfile to address the advisories seen during local audit.
 
 ### Decisions
 - Issuer string is now `stripOriginTrailingSlash(url)` — bare origins like `https://x.workers.dev` no longer get a trailing `/`. This matches RFC 8414 and avoids mismatch between wrangler.toml config and JWT `iss` claims.

@@ -62,6 +62,8 @@ The deploy job uses a `production` environment, so you can configure environment
 
 Worker secrets (`OAUTH_JWT_SIGNING_KEY_B64`, `UPSTREAM_CONFIG_ENC_KEY_B64`, `CSRF_SIGNING_KEY_B64`) are auto-initialized on first deploy if they don't exist yet. For a brand-new Worker, CI first creates the Worker with a bootstrap deploy, then sets the missing secrets, then deploys again. This keeps fresh environments working without manual secret setup.
 
+The workflow is designed for GitHub's `ubuntu-latest` runners and assumes Node.js 20 from `actions/setup-node` plus the runner-provided `jq` and `openssl` CLIs. Cloudflare credentials must be supplied through GitHub Actions secrets only; do not place Cloudflare tokens or account-specific credentials in tracked files.
+
 ### Manual deploy
 
 ```bash
@@ -122,7 +124,7 @@ Users can revoke access by revoking or regenerating their Todoist developer toke
 
 - Check CSRF token freshness.
 - Check that all OAuth fields were preserved correctly.
-- Check that the Todoist token is a real developer token and not whitespace.
+- Check that the Todoist token is the full developer token and does not contain embedded whitespace or truncation from copy/paste.
 
 ### Token exchange fails
 

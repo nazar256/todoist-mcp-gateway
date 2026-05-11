@@ -18,7 +18,7 @@ The consent form explains where to find the token:
 
 - Todoist → Settings → Integrations → Developer token
 
-The Worker validates the token with a Todoist API request before issuing auth artifacts.
+The Worker performs basic local token-shape validation before issuing auth artifacts. It does not perform an upstream Todoist API validation call during authorization; real upstream/tool calls surface token problems later.
 
 ## Why not upstream Todoist OAuth in v1
 
@@ -34,8 +34,9 @@ The Worker validates the token with a Todoist API request before issuing auth ar
 
 ## How the token is validated
 
-- Worker calls `GET https://api.todoist.com/rest/v2/projects` with `Authorization: Bearer <token>`.
-- Invalid tokens are rejected and the consent form is re-rendered with a safe error.
+- Worker trims the submitted value and rejects empty input, embedded whitespace, and control characters.
+- The token is encrypted into auth artifacts and later used for real Todoist API calls.
+- Upstream Todoist 401/403 failures are surfaced by MCP tool calls as safe protocol-level errors instead of rejecting otherwise valid tokens at the consent page.
 
 ## Revocation model
 
@@ -46,7 +47,7 @@ The Worker validates the token with a Todoist API request before issuing auth ar
 
 - The token is sensitive and must never appear in plaintext logs, URLs, hidden fields, or plaintext JWT claims.
 - The token is encrypted before being embedded in auth artifacts.
-- The gateway is responsible for validating and then minimizing exposure of the token.
+- The gateway is responsible for minimizing exposure of the token and safely surfacing upstream auth failures.
 
 ## Limitations
 

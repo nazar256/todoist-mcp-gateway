@@ -16,7 +16,7 @@
 - [ ] `response_type=code` is required.
 - [ ] PKCE `S256` is required and `plain` is rejected.
 - [ ] `/authorize` GET validates client and redirect identity.
-- [ ] `/authorize` POST validates CSRF and user-supplied Todoist token.
+- [ ] `/authorize` POST validates CSRF and rejects empty/whitespace-corrupted Todoist tokens.
 - [ ] `/token` validates auth code, redirect URI, client ID, PKCE, and resource.
 - [ ] Refresh token behavior is documented and tested if enabled.
 
